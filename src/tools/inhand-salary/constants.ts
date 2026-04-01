@@ -38,9 +38,6 @@ export const PROFESSIONAL_TAX_YEARLY = 2400;
 // ── PF Defaults ───────────────────────────────────────────────────
 // Minimum statutory PF: 12% of ₹15,000 basic = ₹1,800/month
 export const DEFAULT_PF_MONTHLY = 1800;
-export const PF_MIN = 1800;
-export const PF_MAX = 21000;
-export const PF_STEP = 100;
 
 // ── Input Limits ──────────────────────────────────────────────────
 export const CTC_WARNING_THRESHOLD_LAKHS = 1000; // > ₹10 Cr — likely a typo

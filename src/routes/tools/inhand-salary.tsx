@@ -17,7 +17,6 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Separator } from "#/components/ui/separator";
-import { Slider } from "#/components/ui/slider";
 import { cn } from "#/lib/utils";
 import {
 	calculate,
@@ -30,9 +29,6 @@ import {
 	FINANCIAL_YEAR,
 	NEW_REGIME_STANDARD_DEDUCTION,
 	OLD_REGIME_STANDARD_DEDUCTION,
-	PF_MAX,
-	PF_MIN,
-	PF_STEP,
 } from "#/tools/inhand-salary/constants";
 import type { CalculationResult, TaxRegime } from "#/tools/inhand-salary/types";
 
@@ -170,8 +166,6 @@ function InputPanel({
 
 	return (
 		<div className="island-shell rounded-2xl p-6">
-			<p className="island-kicker mb-5">Configure</p>
-
 			{/* Regime Toggle */}
 			<div className="mb-6">
 				<Label className="mb-2.5 block text-sm font-semibold text-foreground">
@@ -259,23 +253,29 @@ function InputPanel({
 						<span className="text-xs text-muted-foreground">/mo</span>
 					</div>
 				</div>
-				<Slider
-					min={PF_MIN}
-					max={PF_MAX}
-					step={PF_STEP}
-					value={[pfMonthly]}
-					onValueChange={([v]) => setPfMonthly(v)}
-					className="mt-3"
-				/>
-				<div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
-					<span>₹{formatIndian(PF_MIN)} min</span>
-					<span>₹{formatIndian(PF_MAX)} max</span>
+				<div className="relative mt-3">
+					<Input
+						id="pf-monthly-input"
+						type="number"
+						min={0}
+						step={100}
+						placeholder="e.g. 1800"
+						value={pfMonthly}
+						onChange={(e) => {
+							const next = Number.parseFloat(e.target.value);
+							setPfMonthly(Number.isFinite(next) && next >= 0 ? next : 0);
+						}}
+						className="pr-14"
+					/>
+					<span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+						/mo
+					</span>
 				</div>
 				<div className="mt-2 flex items-start gap-1.5 rounded-lg bg-muted/60 p-2.5">
 					<Info className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
 					<p className="text-[11px] leading-relaxed text-muted-foreground">
-						Employee share only. Both employee + employer contributions are
-						deducted from CTC.
+						Enter employee PF amount. This input is not capped by the calculator
+						UI; both employee + employer contributions are deducted from CTC.
 					</p>
 				</div>
 			</div>
