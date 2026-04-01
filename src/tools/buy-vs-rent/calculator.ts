@@ -180,10 +180,10 @@ function getVerdict({
 	financialGap: number;
 	propertyPrice: number;
 	monthlyRent: number;
-}) {
+}): BuyVsRentVerdict {
 	const closeCallBand = Math.max(propertyPrice * 0.03, monthlyRent * 12);
 	if (Math.abs(financialGap) <= closeCallBand) return "close-call" as const;
-	return financialGap > 0 ? "buy" : "rent";
+	return financialGap > 0 ? ("buy" as const) : ("rent" as const);
 }
 
 function getConfidence(
