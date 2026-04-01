@@ -40,13 +40,19 @@ export const Route = createFileRoute("/tools/inhand-salary")({
 
 function InHandSalaryPage() {
 	const [ctcInput, setCtcInput] = useState("");
+	const [expectedExemptionsInput, setExpectedExemptionsInput] = useState("");
 	const [pfMonthly, setPfMonthly] = useState(DEFAULT_PF_MONTHLY);
 	const [regime, setRegime] = useState<TaxRegime>("new");
 
 	const ctcLakhs = Number.parseFloat(ctcInput) || 0;
-	const result = calculate(ctcLakhs, pfMonthly, regime);
-	const oldResult = result ? calculate(ctcLakhs, pfMonthly, "old") : null;
-	const newResult = result ? calculate(ctcLakhs, pfMonthly, "new") : null;
+	const expectedExemptions = Number.parseFloat(expectedExemptionsInput) || 0;
+	const result = calculate(ctcLakhs, pfMonthly, regime, expectedExemptions);
+	const oldResult = result
+		? calculate(ctcLakhs, pfMonthly, "old", expectedExemptions)
+		: null;
+	const newResult = result
+		? calculate(ctcLakhs, pfMonthly, "new", expectedExemptions)
+		: null;
 
 	const showWarning = ctcLakhs > CTC_WARNING_THRESHOLD_LAKHS;
 
@@ -85,10 +91,12 @@ function InHandSalaryPage() {
 				{/* Two-column layout */}
 				<div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
 					{/* Left: Input Panel */}
-					<div className="lg:sticky lg:top-[80px]">
+					<div className="lg:sticky lg:top-20">
 						<InputPanel
 							ctcInput={ctcInput}
 							setCtcInput={setCtcInput}
+							expectedExemptionsInput={expectedExemptionsInput}
+							setExpectedExemptionsInput={setExpectedExemptionsInput}
 							pfMonthly={pfMonthly}
 							setPfMonthly={setPfMonthly}
 							regime={regime}
@@ -141,6 +149,8 @@ function SiteNav() {
 interface InputPanelProps {
 	ctcInput: string;
 	setCtcInput: (v: string) => void;
+	expectedExemptionsInput: string;
+	setExpectedExemptionsInput: (v: string) => void;
 	pfMonthly: number;
 	setPfMonthly: (v: number) => void;
 	regime: TaxRegime;
@@ -151,6 +161,8 @@ interface InputPanelProps {
 function InputPanel({
 	ctcInput,
 	setCtcInput,
+	expectedExemptionsInput,
+	setExpectedExemptionsInput,
 	pfMonthly,
 	setPfMonthly,
 	regime,
@@ -159,6 +171,7 @@ function InputPanel({
 }: InputPanelProps) {
 	const ctcLakhs = Number.parseFloat(ctcInput) || 0;
 	const ctcRupees = ctcLakhs * 100000;
+	const expectedExemptions = Number.parseFloat(expectedExemptionsInput) || 0;
 	const stdDeduction =
 		regime === "new"
 			? NEW_REGIME_STANDARD_DEDUCTION
@@ -240,6 +253,34 @@ function InputPanel({
 				)}
 			</div>
 
+			{/* Expected Exemptions Input */}
+			<div className="mb-6">
+				<Label
+					htmlFor="expected-exemptions-input"
+					className="mb-2 block text-sm font-semibold text-foreground"
+				>
+					Expected Exemptions (Annual)
+				</Label>
+				<div className="relative">
+					<Input
+						id="expected-exemptions-input"
+						type="number"
+						min={0}
+						step={1000}
+						placeholder="e.g. 150000"
+						value={expectedExemptionsInput}
+						onChange={(e) => setExpectedExemptionsInput(e.target.value)}
+						className="pr-12"
+					/>
+					<span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+						/yr
+					</span>
+				</div>
+				<p className="mt-1.5 text-xs text-muted-foreground">
+					80C / 80D / etc. Applied only in Old Regime.
+				</p>
+			</div>
+
 			{/* PF Slider */}
 			<div className="mb-6">
 				<div className="mb-2 flex items-center justify-between">
@@ -309,6 +350,16 @@ function InputPanel({
 						4% on tax
 					</span>
 				</div>
+				<div className="flex items-center justify-between">
+					<span className="text-sm text-muted-foreground">
+						Expected exemptions
+					</span>
+					<span className="text-sm font-semibold text-foreground">
+						{regime === "old"
+							? `₹${formatIndian(expectedExemptions)}`
+							: "Old regime only"}
+					</span>
+				</div>
 			</div>
 		</div>
 	);
@@ -331,7 +382,7 @@ function ResultsPanel({
 }: ResultsPanelProps) {
 	if (!result) {
 		return (
-			<div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border py-20 text-center">
+			<div className="flex min-h-100 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border py-20 text-center">
 				<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
 					<Calculator className="h-8 w-8 text-primary" />
 				</div>
@@ -492,6 +543,15 @@ function BreakdownSections({
 							value: `− ₹${formatIndian(result.standardDeduction)}`,
 							dim: true,
 						},
+						...(regime === "old"
+							? [
+									{
+										label: "Expected Exemptions (80C / 80D / etc)",
+										value: `− ₹${formatIndian(result.exemptionsApplied)}`,
+										dim: true,
+									},
+								]
+							: []),
 						{
 							label: "Taxable Income",
 							value: `₹${formatIndian(result.taxableIncome)}`,
@@ -553,13 +613,36 @@ function BreakdownSections({
 							label: "Base Tax (from slabs)",
 							value: `₹${formatIndian(result.baseTax)}`,
 						},
-						...(result.rebateApplied
+						...(result.rebateAmount > 0
 							? [
 									{
 										label: "Section 87A Rebate",
-										value: "− ₹0 (fully waived)",
+										value: `− ₹${formatIndian(result.rebateAmount)}`,
 										dim: true,
 									},
+								]
+							: []),
+						{
+							label: "Tax After Rebate",
+							value: `₹${formatIndian(result.taxAfterRebate)}`,
+							dim: true,
+						},
+						...(result.surcharge > 0
+							? [
+									{
+										label: `Surcharge (${(result.surchargeRate * 100).toFixed(0)}%)`,
+										value: `₹${formatIndian(result.surcharge)}`,
+										dim: true,
+									},
+									...(result.marginalRelief > 0
+										? [
+												{
+													label: "Marginal Relief",
+													value: `− ₹${formatIndian(result.marginalRelief)}`,
+													dim: true,
+												},
+											]
+										: []),
 								]
 							: []),
 						{

@@ -16,9 +16,16 @@ export interface SlabResult {
 export interface CalculationResult {
 	grossIncome: number;
 	standardDeduction: number;
+	taxableIncomeBeforeExemptions: number;
+	exemptionsApplied: number;
 	taxableIncome: number;
 	baseTax: number;
 	rebateApplied: boolean;
+	rebateAmount: number;
+	taxAfterRebate: number;
+	surchargeRate: number;
+	surcharge: number;
+	marginalRelief: number;
 	educationCess: number;
 	professionalTax: number;
 	totalTax: number;
@@ -34,5 +41,6 @@ export interface CalculationResult {
 export interface CalculatorInputs {
 	ctcLakhs: number;
 	pfMonthly: number;
+	expectedExemptions: number;
 	regime: TaxRegime;
 }

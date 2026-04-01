@@ -87,8 +87,8 @@ export const TOOLS: Tool[] = [
 		icon: TrendingUp,
 		color: "text-[#10b981]",
 		bg: "bg-[#10b981]/10",
-		status: "coming-soon",
-		href: null,
+		status: "live",
+		href: "/tools/salary-growth",
 	},
 	{
 		id: "offer-compare",
@@ -109,8 +109,8 @@ export const TOOLS: Tool[] = [
 		icon: Home,
 		color: "text-[#ec4899]",
 		bg: "bg-[#ec4899]/10",
-		status: "coming-soon",
-		href: null,
+		status: "live",
+		href: "/tools/buy-vs-rent",
 	},
 	{
 		id: "fire",

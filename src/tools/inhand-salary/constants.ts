@@ -15,8 +15,9 @@ export const NEW_REGIME_SLABS: TaxSlab[] = [
 ];
 
 export const NEW_REGIME_STANDARD_DEDUCTION = 75000;
-// Section 87A: full tax rebate if taxable income ≤ this threshold
+// Section 87A (new regime)
 export const NEW_REGIME_REBATE_THRESHOLD = 1200000;
+export const NEW_REGIME_REBATE_MAX = 60000;
 
 // ── Old Regime ────────────────────────────────────────────────────
 export const OLD_REGIME_SLABS: TaxSlab[] = [
@@ -27,6 +28,9 @@ export const OLD_REGIME_SLABS: TaxSlab[] = [
 ];
 
 export const OLD_REGIME_STANDARD_DEDUCTION = 50000;
+// Section 87A (old regime)
+export const OLD_REGIME_REBATE_THRESHOLD = 500000;
+export const OLD_REGIME_REBATE_MAX = 12500;
 
 // ── Common Rates ──────────────────────────────────────────────────
 // Education & Health Cess on income tax
@@ -34,6 +38,18 @@ export const EDUCATION_CESS_RATE = 0.04;
 
 // Professional Tax: ₹200/month in most states — adjust per state
 export const PROFESSIONAL_TAX_YEARLY = 2400;
+
+// ── Surcharge (on income tax) ───────────────────────────────────
+export const SURCHARGE_THRESHOLD_50L = 5000000;
+export const SURCHARGE_THRESHOLD_1CR = 10000000;
+export const SURCHARGE_THRESHOLD_2CR = 20000000;
+export const SURCHARGE_THRESHOLD_5CR = 50000000;
+
+export const SURCHARGE_RATE_50L_TO_1CR = 0.1;
+export const SURCHARGE_RATE_1CR_TO_2CR = 0.15;
+export const SURCHARGE_RATE_2CR_TO_5CR = 0.25;
+export const SURCHARGE_RATE_ABOVE_5CR_NEW = 0.25;
+export const SURCHARGE_RATE_ABOVE_5CR_OLD = 0.37;
 
 // ── PF Defaults ───────────────────────────────────────────────────
 // Minimum statutory PF: 12% of ₹15,000 basic = ₹1,800/month
