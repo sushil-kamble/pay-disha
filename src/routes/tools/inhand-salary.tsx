@@ -17,6 +17,11 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Separator } from "#/components/ui/separator";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import {
 	calculate,
@@ -365,7 +370,19 @@ function InputPanel({
 			<div className="mb-6">
 				<div className="mb-2 flex items-center justify-between">
 					<Label className="text-sm font-semibold text-foreground">
-						Monthly PF Contribution
+						<span className="flex items-center">
+							Monthly PF Contribution
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Info className="ml-1 inline h-3.5 w-3.5 cursor-pointer text-muted-foreground hover:text-foreground" />
+								</TooltipTrigger>
+								<TooltipContent className="max-w-64 text-pretty">
+									Enter employee PF amount. This input is not capped by the
+									calculator UI; both employee + employer contributions are
+									deducted from CTC.
+								</TooltipContent>
+							</Tooltip>
+						</span>
 					</Label>
 					<div className="flex items-center gap-1">
 						<span className="text-sm font-bold text-foreground">
@@ -391,13 +408,6 @@ function InputPanel({
 					<span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-medium text-muted-foreground">
 						/mo
 					</span>
-				</div>
-				<div className="mt-2 flex items-start gap-1.5 rounded-lg bg-muted/60 p-2.5">
-					<Info className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-					<p className="text-[11px] leading-relaxed text-muted-foreground">
-						Enter employee PF amount. This input is not capped by the calculator
-						UI; both employee + employer contributions are deducted from CTC.
-					</p>
 				</div>
 			</div>
 
@@ -466,7 +476,7 @@ function ResultsPanel({
 }: ResultsPanelProps) {
 	if (!result) {
 		return (
-			<div className="flex min-h-100 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border py-20 text-center">
+			<div className="flex min-h-100 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 py-20 text-center">
 				<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
 					<Calculator className="h-8 w-8 text-primary" />
 				</div>

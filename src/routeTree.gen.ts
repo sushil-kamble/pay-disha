@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsSalaryGrowthRouteImport } from './routes/tools/salary-growth'
+import { Route as ToolsJobOfferComparatorRouteImport } from './routes/tools/job-offer-comparator'
 import { Route as ToolsInhandSalaryRouteImport } from './routes/tools/inhand-salary'
+import { Route as ToolsFireRouteImport } from './routes/tools/fire'
 import { Route as ToolsBuyVsRentRouteImport } from './routes/tools/buy-vs-rent'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +26,19 @@ const ToolsSalaryGrowthRoute = ToolsSalaryGrowthRouteImport.update({
   path: '/tools/salary-growth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsJobOfferComparatorRoute = ToolsJobOfferComparatorRouteImport.update({
+  id: '/tools/job-offer-comparator',
+  path: '/tools/job-offer-comparator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsInhandSalaryRoute = ToolsInhandSalaryRouteImport.update({
   id: '/tools/inhand-salary',
   path: '/tools/inhand-salary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsFireRoute = ToolsFireRouteImport.update({
+  id: '/tools/fire',
+  path: '/tools/fire',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsBuyVsRentRoute = ToolsBuyVsRentRouteImport.update({
@@ -38,20 +50,26 @@ const ToolsBuyVsRentRoute = ToolsBuyVsRentRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/tools/buy-vs-rent': typeof ToolsBuyVsRentRoute
+  '/tools/fire': typeof ToolsFireRoute
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
+  '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tools/buy-vs-rent': typeof ToolsBuyVsRentRoute
+  '/tools/fire': typeof ToolsFireRoute
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
+  '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/tools/buy-vs-rent': typeof ToolsBuyVsRentRoute
+  '/tools/fire': typeof ToolsFireRoute
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
+  '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
 }
 export interface FileRouteTypes {
@@ -59,26 +77,34 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/tools/buy-vs-rent'
+    | '/tools/fire'
     | '/tools/inhand-salary'
+    | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/tools/buy-vs-rent'
+    | '/tools/fire'
     | '/tools/inhand-salary'
+    | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
   id:
     | '__root__'
     | '/'
     | '/tools/buy-vs-rent'
+    | '/tools/fire'
     | '/tools/inhand-salary'
+    | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ToolsBuyVsRentRoute: typeof ToolsBuyVsRentRoute
+  ToolsFireRoute: typeof ToolsFireRoute
   ToolsInhandSalaryRoute: typeof ToolsInhandSalaryRoute
+  ToolsJobOfferComparatorRoute: typeof ToolsJobOfferComparatorRoute
   ToolsSalaryGrowthRoute: typeof ToolsSalaryGrowthRoute
 }
 
@@ -98,11 +124,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsSalaryGrowthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/job-offer-comparator': {
+      id: '/tools/job-offer-comparator'
+      path: '/tools/job-offer-comparator'
+      fullPath: '/tools/job-offer-comparator'
+      preLoaderRoute: typeof ToolsJobOfferComparatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/inhand-salary': {
       id: '/tools/inhand-salary'
       path: '/tools/inhand-salary'
       fullPath: '/tools/inhand-salary'
       preLoaderRoute: typeof ToolsInhandSalaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/fire': {
+      id: '/tools/fire'
+      path: '/tools/fire'
+      fullPath: '/tools/fire'
+      preLoaderRoute: typeof ToolsFireRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tools/buy-vs-rent': {
@@ -118,7 +158,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ToolsBuyVsRentRoute: ToolsBuyVsRentRoute,
+  ToolsFireRoute: ToolsFireRoute,
   ToolsInhandSalaryRoute: ToolsInhandSalaryRoute,
+  ToolsJobOfferComparatorRoute: ToolsJobOfferComparatorRoute,
   ToolsSalaryGrowthRoute: ToolsSalaryGrowthRoute,
 }
 export const routeTree = rootRouteImport
