@@ -7,7 +7,7 @@ import {
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "#/components/ui/badge";
 import {
 	Collapsible,
@@ -27,6 +27,7 @@ import {
 	CTC_WARNING_THRESHOLD_LAKHS,
 	DEFAULT_PF_MONTHLY,
 	FINANCIAL_YEAR,
+	INHAND_SALARY_STORAGE_KEY,
 	NEW_REGIME_STANDARD_DEDUCTION,
 	OLD_REGIME_STANDARD_DEDUCTION,
 } from "#/tools/inhand-salary/constants";
@@ -36,6 +37,61 @@ export const Route = createFileRoute("/tools/inhand-salary")({
 	component: InHandSalaryPage,
 });
 
+interface PersistedInHandSalaryState {
+	ctcInput: string;
+	expectedExemptionsInput: string;
+	pfMonthly: number;
+	regime: TaxRegime;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isPersistedInHandSalaryState(
+	value: unknown,
+): value is PersistedInHandSalaryState {
+	if (!isRecord(value)) return false;
+
+	return (
+		typeof value.ctcInput === "string" &&
+		typeof value.expectedExemptionsInput === "string" &&
+		typeof value.pfMonthly === "number" &&
+		(value.regime === "new" || value.regime === "old")
+	);
+}
+
+function parseStoredJson(rawValue: string | null) {
+	if (!rawValue) return null;
+
+	try {
+		return JSON.parse(rawValue) as unknown;
+	} catch {
+		return null;
+	}
+}
+
+function loadStoredInHandSalaryState(): PersistedInHandSalaryState | null {
+	const parsed = parseStoredJson(
+		window.localStorage.getItem(INHAND_SALARY_STORAGE_KEY),
+	);
+
+	if (!isPersistedInHandSalaryState(parsed)) return null;
+
+	return parsed;
+}
+
+function saveStoredInHandSalaryState(value: PersistedInHandSalaryState) {
+	try {
+		window.localStorage.setItem(
+			INHAND_SALARY_STORAGE_KEY,
+			JSON.stringify(value),
+		);
+	} catch {
+		// Ignore storage write failures such as private browsing quotas.
+	}
+}
+
 // ─── Page Shell ───────────────────────────────────────────────────────────────
 
 function InHandSalaryPage() {
@@ -43,6 +99,30 @@ function InHandSalaryPage() {
 	const [expectedExemptionsInput, setExpectedExemptionsInput] = useState("");
 	const [pfMonthly, setPfMonthly] = useState(DEFAULT_PF_MONTHLY);
 	const [regime, setRegime] = useState<TaxRegime>("new");
+	const [storageReady, setStorageReady] = useState(false);
+
+	useEffect(() => {
+		const storedState = loadStoredInHandSalaryState();
+		if (storedState) {
+			setCtcInput(storedState.ctcInput);
+			setExpectedExemptionsInput(storedState.expectedExemptionsInput);
+			setPfMonthly(storedState.pfMonthly);
+			setRegime(storedState.regime);
+		}
+
+		setStorageReady(true);
+	}, []);
+
+	useEffect(() => {
+		if (!storageReady) return;
+
+		saveStoredInHandSalaryState({
+			ctcInput,
+			expectedExemptionsInput,
+			pfMonthly,
+			regime,
+		});
+	}, [ctcInput, expectedExemptionsInput, pfMonthly, regime, storageReady]);
 
 	const ctcLakhs = Number.parseFloat(ctcInput) || 0;
 	const expectedExemptions = Number.parseFloat(expectedExemptionsInput) || 0;
@@ -360,6 +440,10 @@ function InputPanel({
 							: "Old regime only"}
 					</span>
 				</div>
+				<p className="pt-1 text-[11px] leading-relaxed text-muted-foreground">
+					These values are restored from local storage in your browser. We are
+					not saving this data anywhere else.
+				</p>
 			</div>
 		</div>
 	);

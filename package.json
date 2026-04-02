@@ -10,9 +10,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
     "format": "biome format",
     "lint": "biome lint",
-    "check": "biome check"
+    "check": "biome check && pnpm typecheck"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

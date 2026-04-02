@@ -57,3 +57,6 @@ export const DEFAULT_PF_MONTHLY = 1800;
 
 // ── Input Limits ──────────────────────────────────────────────────
 export const CTC_WARNING_THRESHOLD_LAKHS = 1000; // > ₹10 Cr — likely a typo
+
+// ── Local Storage ─────────────────────────────────────────────────
+export const INHAND_SALARY_STORAGE_KEY = "inhand-salary:inputs";
