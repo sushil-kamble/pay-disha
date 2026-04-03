@@ -1,4 +1,8 @@
-import { JOB_OFFER_COMPARATOR_STORAGE_KEY } from "./constants";
+import {
+	DEFAULT_COMPARE_CONFIG,
+	JOB_OFFER_COMPARATOR_STORAGE_KEY,
+} from "./constants";
+import { createDefaultBaselineOffer, createDefaultOffers } from "./presets";
 import type {
 	CompareConfig,
 	OfferInput,
@@ -10,6 +14,14 @@ function parseStoredJson(rawValue: string | null) {
 
 	try {
 		return JSON.parse(rawValue) as unknown;
+	} catch {
+		return null;
+	}
+}
+
+function getStoredValue() {
+	try {
+		return window.localStorage.getItem(JOB_OFFER_COMPARATOR_STORAGE_KEY);
 	} catch {
 		return null;
 	}
@@ -41,10 +53,26 @@ function isCompareConfig(value: unknown): value is CompareConfig {
 	);
 }
 
+function mergeOffer(
+	stored: Partial<OfferInput>,
+	template: OfferInput,
+): OfferInput {
+	return {
+		...template,
+		...stored,
+		benefits: {
+			...template.benefits,
+			...(isRecord(stored.benefits) ? stored.benefits : {}),
+		},
+		qualitative: {
+			...template.qualitative,
+			...(isRecord(stored.qualitative) ? stored.qualitative : {}),
+		},
+	} as OfferInput;
+}
+
 export function loadStoredJobOfferComparatorState(): PersistedJobOfferComparatorState | null {
-	const parsed = parseStoredJson(
-		window.localStorage.getItem(JOB_OFFER_COMPARATOR_STORAGE_KEY),
-	);
+	const parsed = parseStoredJson(getStoredValue());
 
 	if (!isRecord(parsed)) return null;
 	if (!isOfferArray(parsed.offers)) return null;
@@ -57,11 +85,27 @@ export function loadStoredJobOfferComparatorState(): PersistedJobOfferComparator
 		? (parsed.advancedOpenByOfferId as Record<string, boolean>)
 		: {};
 
+	const offerOpenByOfferId = isRecord(parsed.offerOpenByOfferId)
+		? (parsed.offerOpenByOfferId as Record<string, boolean>)
+		: {};
+
+	const defaultOffers = createDefaultOffers();
+	const templateOffer = defaultOffers[0] || createDefaultBaselineOffer();
+
+	const mergedOffers = parsed.offers.map((offer) =>
+		mergeOffer(offer as Partial<OfferInput>, templateOffer),
+	);
+
+	const mergedBaseline = baseline
+		? mergeOffer(baseline as Partial<OfferInput>, createDefaultBaselineOffer())
+		: null;
+
 	return {
-		offers: parsed.offers,
-		config: parsed.config,
-		baselineOffer: baseline as OfferInput | null,
+		offers: mergedOffers,
+		config: { ...DEFAULT_COMPARE_CONFIG, ...parsed.config },
+		baselineOffer: mergedBaseline,
 		advancedOpenByOfferId,
+		offerOpenByOfferId,
 	};
 }
 

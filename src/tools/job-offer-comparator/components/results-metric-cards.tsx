@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Wallet } from "lucide-react";
+import { ArrowDown, ArrowUp, LayoutGrid, Wallet } from "lucide-react";
 
 import { formatCompactCurrency, formatIndianCurrency } from "../format";
 import type { OfferComputed } from "../types";
@@ -13,22 +13,39 @@ export function ResultsMetricCards({ offers }: ResultsMetricCardsProps) {
 	);
 
 	return (
-		<div className="overflow-x-auto pb-1">
-			<div className="flex min-w-max gap-3 pr-1">
+		<div className="rounded-2xl border border-border bg-card p-4">
+			<div className="mb-3 flex items-center gap-2">
+				<LayoutGrid className="h-4 w-4 text-primary" />
+				<p className="text-sm font-semibold text-foreground">
+					Offer comparison
+				</p>
+				<span className="text-xs text-muted-foreground">
+					— ranked by risk-adjusted value
+				</span>
+			</div>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				{sorted.map((item, index) => (
 					<div
 						key={item.offer.id}
-						className="w-72 shrink-0 rounded-xl border border-border bg-card p-3.5"
+						className={`rounded-xl border bg-background p-3.5 ${
+							index === 0
+								? "border-primary/40 ring-1 ring-primary/20"
+								: "border-border"
+						}`}
 					>
 						<div className="mb-2 flex items-center justify-between gap-2">
 							<p className="text-sm font-semibold text-foreground">
-								{item.offer.label}
+								{item.offer.companyName || "Unnamed offer"}
 							</p>
 							{index === 0 ? (
 								<span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
 									Top risk-adjusted
 								</span>
-							) : null}
+							) : (
+								<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+									#{index + 1}
+								</span>
+							)}
 						</div>
 
 						<div className="space-y-1.5 text-xs text-muted-foreground">

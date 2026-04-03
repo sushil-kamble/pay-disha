@@ -7,10 +7,10 @@ import type {
 
 function createDefaultBenefits(): BenefitSelections {
 	return {
-		healthSelf: { enabled: true, monthlyValue: 1400 },
+		healthSelf: { enabled: false, monthlyValue: 1400 },
 		healthFamily: { enabled: false, monthlyValue: 2000 },
-		meal: { enabled: true, monthlyValue: 1800 },
-		internet: { enabled: true, monthlyValue: 900 },
+		meal: { enabled: false, monthlyValue: 1800 },
+		internet: { enabled: false, monthlyValue: 900 },
 		learning: { enabled: false, monthlyValue: 1000 },
 		wellness: { enabled: false, monthlyValue: 800 },
 		transport: { enabled: false, monthlyValue: 1500 },
@@ -29,7 +29,7 @@ function createDefaultQualitative(): QualitativeInputs {
 	};
 }
 
-const archetypeDefaults: Record<
+export const archetypeDefaults: Record<
 	EmployerType,
 	Pick<
 		OfferInput,
@@ -93,9 +93,7 @@ function makeOffer(id: string, label: string, companyName: string): OfferInput {
 		promotionUpliftPct: 12,
 		pfMonthly: 1800,
 		taxRegime: "new",
-		commuteMonthlyCost: 3500,
-		rentDeltaMonthlyCost: 0,
-		remoteSetupMonthlyCost: 500,
+		expensesMonthly: 0,
 		noticeBuyoutRisk: 0,
 		clawbackRisk: 0,
 		benefits: createDefaultBenefits(),

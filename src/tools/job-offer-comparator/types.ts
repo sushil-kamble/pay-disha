@@ -56,9 +56,7 @@ export interface OfferInput {
 	promotionUpliftPct: number;
 	pfMonthly: number;
 	taxRegime: TaxRegime;
-	commuteMonthlyCost: number;
-	rentDeltaMonthlyCost: number;
-	remoteSetupMonthlyCost: number;
+	expensesMonthly: number;
 	noticeBuyoutRisk: number;
 	clawbackRisk: number;
 	benefits: BenefitSelections;
@@ -82,9 +80,12 @@ export interface OfferComputed {
 	offer: OfferInput;
 	annualGuaranteedCash: number;
 	expectedVariableAnnualCash: number;
+	firstYearEquityValue: number;
 	annualEmployerRetirement: number;
-	annualWorkCost: number;
+	annualExpenses: number;
 	annualBenefitValue: number;
+	firstYearOneTimeUpside: number;
+	firstYearRiskDeductions: number;
 	monthlyTakeHome: number;
 	firstYearRealizedValue: number;
 	steadyStateAnnualValue: number;
@@ -128,4 +129,5 @@ export interface PersistedJobOfferComparatorState {
 	config: CompareConfig;
 	baselineOffer: OfferInput | null;
 	advancedOpenByOfferId: Record<string, boolean>;
+	offerOpenByOfferId: Record<string, boolean>;
 }

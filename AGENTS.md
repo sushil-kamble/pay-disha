@@ -1,48 +1,152 @@
 # AGENTS.md
+Agent operating guide for `pay-disha`.
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+## 1) Project Snapshot
+- Stack: TanStack Start + TanStack Router (file-based) + React 19 + Tailwind CSS v4 + shadcn/ui + Biome + Vitest.
+- Package manager: `pnpm`.
+- Alias: `#/* -> ./src/*` (prefer for internal imports).
+- Product focus: finance/career decision tools for salaried users (mobile-first, privacy-first).
 
-## Commands
-
+## 2) Commands (use exactly)
+### Development
 ```bash
-pnpm dev          # dev server on :3000
-pnpm build        # production build
-pnpm preview      # preview production build
-pnpm test         # run tests (vitest)
-pnpm check        # biome lint + format check (run before committing)
-pnpm format       # biome format (writes)
-pnpm lint         # biome lint only
+pnpm dev
+pnpm build
+pnpm preview
 ```
 
-Run a single test file: `pnpm vitest run src/path/to/file.test.tsx`
+### Quality gates
+```bash
+pnpm lint
+pnpm format
+pnpm typecheck
+pnpm check
+```
+- `pnpm check` runs Biome + TypeScript (`biome check && pnpm typecheck`).
 
-## Architecture
+### Tests
+```bash
+pnpm test
+pnpm vitest run src/tools/fire/calculator.test.ts
+pnpm vitest run src/tools/fire/calculator.test.ts -t "builds the FIRE target"
+```
+- Single file: `pnpm vitest run src/path/to/file.test.ts`
+- Single test case: add `-t "exact test name"`
 
-**Stack:** TanStack Start (SSR React framework) + TanStack Router (file-based) + Tailwind CSS v4 + Biome
+## 3) Required agent workflow
+1. Make focused edits.
+2. After every significant change, run `pnpm check`.
+3. If business logic/calculations changed, run the relevant test file(s).
+4. Before handoff, ensure no new TypeScript/Biome issues.
 
-**Routing:** File-based via `src/routes/`. Routes are auto-generated into `src/routeTree.gen.ts` — never edit that file manually. Each route file exports a `Route` const via `createFileRoute`.
+Significant change examples:
+- New route/tool/page
+- Calculator/scoring/storage logic updates
+- Shared UI primitive changes in `src/components/ui/*`
+- Large refactors
 
-**Root layout:** `src/routes/__root.tsx` defines the HTML shell via `shellComponent`, injects global CSS via `head()`, and mounts devtools. CSS is imported as `?url` for SSR compatibility.
+## 4) Routing and structure
+### Routing rules
+- Routes are file-based in `src/routes`.
+- Keep tool route wrappers thin: `src/routes/tools/<slug>.tsx` should mostly wire `createFileRoute` to a page component.
+- Never manually edit `src/routeTree.gen.ts` (generated).
 
-**Router config:** `src/router.tsx` exports `getRouter()` — this is the single source of truth for router options. The router type is registered globally via module augmentation in the same file.
+### Standard tool layout
+```text
+src/routes/tools/<slug>.tsx
+src/tools/<slug>/page.tsx
+src/tools/<slug>/calculator.ts
+src/tools/<slug>/constants.ts
+src/tools/<slug>/types.ts
+src/tools/<slug>/*.test.ts
+```
 
-**Path aliases:** `#/*` maps to `./src/*` (defined in `package.json` `imports`). Use `#/lib/utils` not `../../lib/utils`.
+### Key shell files
+- Root document/shell: `src/routes/__root.tsx`
+- Router config: `src/router.tsx`
 
-**Styling:** Tailwind v4 with CSS-first config in `src/styles.css`. Design tokens are CSS custom properties — use them (`var(--lagoon)`, `var(--sea-ink)`, etc.) for brand colors, not arbitrary Tailwind values. Key utility classes defined in CSS: `.page-wrap`, `.island-shell`, `.feature-card`, `.display-title`, `.island-kicker`, `.nav-link`, `.rise-in`.
+## 5) Styling and UI system
+- Tailwind v4 is CSS-first in `src/styles.css`.
+- Use semantic tokens (`bg-background`, `text-foreground`, `border-border`, etc.).
+- Reuse brand utilities where possible (`.page-wrap`, `.island-shell`, `.display-title`, `.feature-card`, `.rise-in`).
+- Fonts are already configured: Manrope (body) + Fraunces (display).
+- Avoid random hardcoded colors when a semantic token exists.
+- Mobile-first by default; for wide comparison data, use section-level horizontal scroll.
 
-**Fonts:** Manrope (sans body, `--font-sans`) + Fraunces (display/serif, use `.display-title` class).
+## 6) shadcn + Cursor rules
+`.cursorrules` requires:
+```bash
+pnpm dlx shadcn@latest add <component>
+```
 
-**Utilities:** `src/lib/utils.ts` exports `cn()` (clsx + tailwind-merge) for conditional class composition.
+Project shadcn specifics:
+- Config: `components.json`
+- Style: `new-york`
+- Icon library: `lucide`
+- UI alias: `#/components/ui`
 
-## Biome (linter/formatter)
+Prefer existing components first (`button`, `card`, `input`, `tabs`, `table`, `tooltip`, `chart`, `collapsible`, etc.) before creating custom primitives.
 
-- Indentation: **tabs**
-- Quotes: **double**
-- Scope: `src/**/*`, `vite.config.ts`, `index.html` — excludes `routeTree.gen.ts` and `styles.css`
-- Always run `pnpm check` before committing; CI will fail on lint/format errors
+## 7) Code style conventions
+### Formatting/linting
+- Enforced by `biome.json`.
+- Indentation: tabs.
+- Quotes: double quotes.
+- Imports are organized automatically.
 
-## TanStack Start conventions
+### Imports
+- Order: external imports first, internal (`#/*`) second.
+- Prefer alias imports over long relative paths.
+- Use `import type { ... }` for type-only imports.
 
-- Server functions: `createServerFn()` from `@tanstack/react-start` — keep them co-located with the routes that use them
-- Server-only imports: use `import { ... } from '@tanstack/react-start/server'`
-- `defaultPreload: "intent"` is set — links preload on hover by default
+### TypeScript
+- `strict` mode is on.
+- Avoid `any`; use narrow types + type guards.
+- Keep pure domain logic in `calculator.ts` (no UI side effects).
+- Export domain types from `types.ts`.
+
+### Naming
+- Components: `PascalCase`
+- Functions/variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE` for true constants
+- Booleans: `is*`, `has*`, `can*`, `show*`
+- Event handlers: `on*` / `handle*`
+
+## 8) Reliability and error handling
+- Parse user input defensively (`Number.parseFloat` + fallback).
+- Clamp/sanitize values in calculator layer.
+- Wrap `localStorage` reads/writes in `try/catch` and fail gracefully.
+- Avoid throwing from render paths for recoverable UI states.
+- Provide explicit safe empty states when inputs/results are missing.
+
+## 9) Testing expectations
+- Logic changes should add/update Vitest coverage.
+- Keep tests deterministic and outcome-focused.
+- Co-locate tests near tool logic (`calculator.test.ts`).
+- Use `describe/it/expect` from `vitest`.
+
+## 10) Agent do / don’t
+### Do
+- Run `pnpm check` after significant edits.
+- Keep route wrappers thin and logic in `src/tools/*`.
+- Reuse design language and semantic tokens.
+- Keep calculations pure and testable.
+
+### Don’t
+- Don’t edit generated files (`src/routeTree.gen.ts`).
+- Don’t skip lint/typecheck before handoff.
+- Don’t bypass semantic tokens with arbitrary styling.
+- Don’t put new agent configs in `.kilocode/` or `.opencode/`; use `.kilo/`.
+
+## 11) Quick navigation
+- Home UI: `src/components/home/*`
+- Shared primitives: `src/components/ui/*`
+- Common utility: `src/lib/utils.ts`
+- Tool routes: `src/routes/tools/*`
+- Tool logic/pages: `src/tools/*`
+- Global tokens/styles: `src/styles.css`
+
+## 12) Cursor/Copilot status
+- Cursor rules found: `.cursorrules` (shadcn command rule included above).
+- `.cursor/rules/`: not present.
+- `.github/copilot-instructions.md`: not present.

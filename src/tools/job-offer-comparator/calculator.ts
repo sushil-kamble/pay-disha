@@ -44,9 +44,12 @@ function computeYearlyProjection(
 ): {
 	annualGuaranteedCash: number;
 	expectedVariableAnnualCash: number;
+	firstYearEquityValue: number;
 	annualEmployerRetirement: number;
-	annualWorkCost: number;
+	annualExpenses: number;
 	annualBenefitValue: number;
+	firstYearOneTimeUpside: number;
+	firstYearRiskDeductions: number;
 	monthlyTakeHome: number;
 	firstYearRealizedValue: number;
 	steadyStateAnnualValue: number;
@@ -56,11 +59,7 @@ function computeYearlyProjection(
 } {
 	const scenarioConfig = SCENARIO_CONFIG[scenario];
 	const annualEmployerRetirement = offer.pfMonthly * 12;
-	const annualWorkCost =
-		(offer.commuteMonthlyCost +
-			offer.rentDeltaMonthlyCost +
-			offer.remoteSetupMonthlyCost) *
-		12;
+	const annualExpenses = offer.expensesMonthly * 12;
 	const annualBenefitValue = sumBenefitValue(offer) * 12;
 
 	const incrementPct =
@@ -82,6 +81,9 @@ function computeYearlyProjection(
 
 	let expectedVariableAnnualCash = 0;
 	let annualGuaranteedCash = 0;
+	let firstYearEquityValue = 0;
+	let firstYearOneTimeUpside = 0;
+	let firstYearRiskDeductions = 0;
 	let monthlyTakeHome = 0;
 	const projection: YearValue[] = [];
 
@@ -94,10 +96,11 @@ function computeYearlyProjection(
 			fixedAnnualCash *= promotionMultiplier;
 		}
 
+		const variableScaleFactor =
+			offer.fixedAnnualCash > 0 ? fixedAnnualCash / offer.fixedAnnualCash : 1;
+
 		const variableAnnualCash =
-			offer.variableAnnualTarget *
-			(fixedAnnualCash / offer.fixedAnnualCash) *
-			payoutPct;
+			offer.variableAnnualTarget * variableScaleFactor * payoutPct;
 
 		let equityAnnualValue =
 			offer.equityAnnualizedValue * scenarioConfig.equityMultiplier;
@@ -123,17 +126,22 @@ function computeYearlyProjection(
 		);
 
 		let realizedValue =
-			annualInHand + annualBenefitValue - annualWorkCost + equityAnnualValue;
+			annualInHand + annualBenefitValue - annualExpenses + equityAnnualValue;
 
 		if (year === 1) {
-			realizedValue +=
+			const oneTimeUpside =
 				offer.joiningBonus +
 				offer.retentionBonus +
 				offer.relocationSupportOneTime;
-			realizedValue -= offer.noticeBuyoutRisk + offer.clawbackRisk;
+			const oneTimeDeductions = offer.noticeBuyoutRisk + offer.clawbackRisk;
+			realizedValue += oneTimeUpside;
+			realizedValue -= oneTimeDeductions;
 			monthlyTakeHome = annualInHand / 12;
 			expectedVariableAnnualCash = variableAnnualCash;
 			annualGuaranteedCash = fixedAnnualCash + annualEmployerRetirement;
+			firstYearEquityValue = equityAnnualValue;
+			firstYearOneTimeUpside = oneTimeUpside;
+			firstYearRiskDeductions = -oneTimeDeductions;
 		}
 
 		projection.push({ year, value: Math.max(0, realizedValue) });
@@ -148,9 +156,12 @@ function computeYearlyProjection(
 	return {
 		annualGuaranteedCash,
 		expectedVariableAnnualCash,
+		firstYearEquityValue,
 		annualEmployerRetirement,
-		annualWorkCost,
+		annualExpenses,
 		annualBenefitValue,
+		firstYearOneTimeUpside,
+		firstYearRiskDeductions,
 		monthlyTakeHome,
 		firstYearRealizedValue,
 		steadyStateAnnualValue,
@@ -188,22 +199,22 @@ function buildNarrative(offers: OfferComputed[], includeFit: boolean) {
 	if (!winner) return [];
 
 	const narrative = [
-		`${winner.offer.label} is strongest on risk-adjusted value across 36 months.`,
+		`${winner.offer.companyName || winner.offer.label} is strongest on risk-adjusted value across 36 months.`,
 	];
 
 	if (runner) {
 		const delta = winner.riskAdjustedValue - runner.riskAdjustedValue;
 		narrative.push(
-			`The lead over ${runner.offer.label} is approximately ₹${Math.round(delta).toLocaleString("en-IN")} on a risk-adjusted basis.`,
+			`The lead over ${runner.offer.companyName || runner.offer.label} is approximately ₹${Math.round(delta).toLocaleString("en-IN")} on a risk-adjusted basis.`,
 		);
 	}
 
 	const highCostOffer = [...offers].sort(
-		(a, b) => b.annualWorkCost - a.annualWorkCost,
+		(a, b) => b.annualExpenses - a.annualExpenses,
 	)[0];
-	if (highCostOffer && highCostOffer.annualWorkCost > 0) {
+	if (highCostOffer && highCostOffer.annualExpenses > 0) {
 		narrative.push(
-			`${highCostOffer.offer.label} carries the highest work-mode and location burden, so cost discipline matters for this option.`,
+			`${highCostOffer.offer.companyName || highCostOffer.offer.label} carries the highest expense burden from taking the role, so cost discipline matters for this option.`,
 		);
 	}
 
@@ -213,7 +224,7 @@ function buildNarrative(offers: OfferComputed[], includeFit: boolean) {
 		)[0];
 		if (fitWinner) {
 			narrative.push(
-				`${fitWinner.offer.label} leads when your qualitative preferences are included in the decision.`,
+				`${fitWinner.offer.companyName || fitWinner.offer.label} leads when your qualitative preferences are included in the decision.`,
 			);
 		}
 	}
@@ -239,9 +250,12 @@ export function compareOffers(
 			offer,
 			annualGuaranteedCash: expected.annualGuaranteedCash,
 			expectedVariableAnnualCash: expected.expectedVariableAnnualCash,
+			firstYearEquityValue: expected.firstYearEquityValue,
 			annualEmployerRetirement: expected.annualEmployerRetirement,
-			annualWorkCost: expected.annualWorkCost,
+			annualExpenses: expected.annualExpenses,
 			annualBenefitValue: expected.annualBenefitValue,
+			firstYearOneTimeUpside: expected.firstYearOneTimeUpside,
+			firstYearRiskDeductions: expected.firstYearRiskDeductions,
 			monthlyTakeHome: expected.monthlyTakeHome,
 			firstYearRealizedValue: expected.firstYearRealizedValue,
 			steadyStateAnnualValue: expected.steadyStateAnnualValue,

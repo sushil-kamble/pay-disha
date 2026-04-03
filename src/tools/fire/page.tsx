@@ -10,7 +10,6 @@ import {
 	ShieldAlert,
 	Target,
 	TrendingUp,
-	HelpCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -643,102 +642,109 @@ function HeroCard({ result }: { result: FireResult }) {
 
 	return (
 		<section className={cn(surfaceClassName, "overflow-hidden p-6 md:p-8")}>
-			<div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
-				<div className="max-w-2xl">
-					<div className="flex flex-wrap items-center gap-2 mb-6">
-						<Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent">
-							<Flame className="mr-1 size-3.5" />
-							FIRE Number
-						</Badge>
-						<Badge variant="outline" className="border-border">
-							{result.fireMultiplier.toFixed(1)}x Yearly Spend
-						</Badge>
-						<Badge
-							variant="outline"
-							className={cn(
-								onTrack
-									? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400"
-									: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-400",
-							)}
-						>
-							{onTrack ? "On Track" : "Needs Adjustment"}
-						</Badge>
-					</div>
-
-					<p className="text-sm font-medium text-muted-foreground">
-						Your Target Corpus
-					</p>
-
-					<div className="mt-2 flex flex-col gap-6 md:flex-row md:items-end">
-						<h2 className="display-title text-5xl font-bold tracking-tight text-foreground md:text-7xl">
-							{formatCurrency(result.fireNumber)}
-						</h2>
-						{bestLever ? (
-							<div className={cn(subSurfaceClassName, "max-w-[280px] p-4")}>
-								<p className="text-xs font-semibold text-primary">
-									Best Next Move
-								</p>
-								<p className="mt-1.5 text-sm font-medium text-foreground">
-									{bestLever.label}
-								</p>
-								<p className="mt-1 text-xs text-muted-foreground">
-									{bestLever.yearsSaved && bestLever.yearsSaved > 0
-										? `Reach FIRE ${bestLever.yearsSaved.toFixed(
-												bestLever.yearsSaved % 1 === 0 ? 0 : 1,
-											)} years earlier`
-										: bestLever.description}
-								</p>
-							</div>
-						) : null}
-					</div>
-					<p className="mt-6 text-base leading-relaxed text-muted-foreground">
-						To retire comfortably at age{" "}
-						<strong>{result.inputs.targetRetirementAge}</strong>, you need to
-						build this corpus. It accounts for a monthly spending of{" "}
-						<strong>{formatMonthly(result.futureMonthlyExpenses)}</strong> and
-						assumes a conservative withdrawal rate to beat Indian inflation.
-					</p>
-				</div>
-
-				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-					<MetricCard
-						label="Current Pace"
-						value={
-							result.fireAge !== null
-								? `Age ${result.fireAge}`
-								: "Not Visible Yet"
-						}
-						subtext={formatYears(result.yearsToFire)}
-						icon={Target}
-					/>
-					<MetricCard
-						label="Remaining Gap"
-						value={
-							result.shortfall > 0
-								? formatCurrency(result.shortfall)
-								: formatCurrency(Math.abs(result.shortfall))
-						}
-						subtext={
-							result.shortfall > 0
-								? "Amount left to save"
-								: "Surplus above target"
-						}
-						icon={ShieldAlert}
-					/>
-					<MetricCard
-						label="Future Monthly Spend"
-						value={formatMonthly(result.futureMonthlyExpenses)}
-						subtext={`Estimated at age ${result.inputs.targetRetirementAge}`}
-						icon={TrendingUp}
-					/>
-					<MetricCard
-						label="Projected Corpus"
-						value={formatCurrency(result.projectedCorpusAtRetirement)}
-						subtext="At target retirement age"
-						icon={PiggyBank}
-					/>
-				</div>
+			{/* Badges: on-track status first, then FIRE Number, then multiplier */}
+			<div className="flex flex-wrap items-center gap-2 mb-6">
+				<Badge
+					variant="outline"
+					className={cn(
+						onTrack
+							? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400"
+							: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-400",
+					)}
+				>
+					{onTrack ? "On Track" : "Needs Adjustment"}
+				</Badge>
+				<Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent">
+					<Flame className="mr-1 size-3.5" />
+					FIRE Number
+				</Badge>
+				<Badge variant="outline" className="border-border">
+					{result.fireMultiplier.toFixed(1)}x Yearly Spend
+				</Badge>
 			</div>
+
+			{/* Target corpus label + big number (whitespace-nowrap keeps Cr on same line) */}
+			<p className="text-sm font-medium text-muted-foreground">
+				Your Target Corpus
+			</p>
+			<div className="mt-2">
+				<h2 className="display-title text-5xl font-bold tracking-tight text-foreground md:text-7xl whitespace-nowrap">
+					{formatCurrency(result.fireNumber)}
+				</h2>
+			</div>
+
+			{/* Four metric cards — 2 per row — below the corpus number */}
+			<div className="mt-8 grid gap-3 sm:grid-cols-2">
+				<MetricCard
+					label="Current Pace"
+					value={
+						result.fireAge !== null
+							? `Age ${result.fireAge}`
+							: "Not Visible Yet"
+					}
+					subtext={formatYears(result.yearsToFire)}
+					icon={Target}
+				/>
+				<MetricCard
+					label="Remaining Gap"
+					value={
+						result.shortfall > 0
+							? formatCurrency(result.shortfall)
+							: formatCurrency(Math.abs(result.shortfall))
+					}
+					subtext={
+						result.shortfall > 0
+							? "Amount left to save"
+							: "Surplus above target"
+					}
+					icon={ShieldAlert}
+				/>
+				<MetricCard
+					label="Future Monthly Spend"
+					value={formatMonthly(result.futureMonthlyExpenses)}
+					subtext={`Estimated at age ${result.inputs.targetRetirementAge}`}
+					icon={TrendingUp}
+				/>
+				<MetricCard
+					label="Projected Corpus"
+					value={formatCurrency(result.projectedCorpusAtRetirement)}
+					subtext="At target retirement age"
+					icon={PiggyBank}
+				/>
+			</div>
+
+			{/* Description */}
+			<p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
+				To retire comfortably at age{" "}
+				<strong>{result.inputs.targetRetirementAge}</strong>, you need to build
+				this corpus. It accounts for a monthly spending of{" "}
+				<strong>{formatMonthly(result.futureMonthlyExpenses)}</strong> and
+				assumes a conservative withdrawal rate to beat Indian inflation.
+			</p>
+
+			{/* Best next move */}
+			{bestLever ? (
+				<div
+					className={cn(
+						subSurfaceClassName,
+						"mt-8 border-l-4 border-l-primary p-5",
+					)}
+				>
+					<p className="text-xs font-semibold uppercase tracking-wider text-primary">
+						Best Next Move
+					</p>
+					<p className="mt-1.5 text-base font-medium text-foreground">
+						{bestLever.label}
+					</p>
+					<p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+						{bestLever.yearsSaved && bestLever.yearsSaved > 0
+							? `Reach FIRE ${bestLever.yearsSaved.toFixed(
+									bestLever.yearsSaved % 1 === 0 ? 0 : 1,
+								)} years earlier`
+							: bestLever.description}
+					</p>
+				</div>
+			) : null}
 		</section>
 	);
 }
@@ -790,7 +796,7 @@ function StrategySection({ result }: { result: FireResult }) {
 				</TabsList>
 
 				<TabsContent value="moves" className="mt-6">
-					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+					<div className="grid gap-4 md:grid-cols-2">
 						{primaryLevers.map((scenario) => (
 							<ScenarioCard key={scenario.id} scenario={scenario} />
 						))}
@@ -798,7 +804,7 @@ function StrategySection({ result }: { result: FireResult }) {
 				</TabsContent>
 
 				<TabsContent value="paths" className="mt-6">
-					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+					<div className="grid gap-4 md:grid-cols-2">
 						{result.fireTypes.map((typeResult) => (
 							<FireTypeCard key={typeResult.type} typeResult={typeResult} />
 						))}
@@ -1053,7 +1059,7 @@ function ProjectionSection({ result }: { result: FireResult }) {
 				}
 			/>
 
-			<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start mt-6">
+			<div className="mt-6 space-y-6">
 				<div
 					className={cn(
 						"rounded-xl border border-border bg-card p-4 shadow-sm",
@@ -1195,7 +1201,7 @@ function ProjectionSection({ result }: { result: FireResult }) {
 					</ChartContainer>
 				</div>
 
-				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+				<div className="grid gap-4 sm:grid-cols-2">
 					{compactInsights.map((insight) => (
 						<div
 							key={insight.id}
@@ -1314,28 +1320,6 @@ function YearByYearTable({
 	);
 }
 
-function FireExplainer() {
-	return (
-		<div className="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-4">
-			<div className="hidden sm:flex mt-0.5 size-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
-				<HelpCircle className="size-4" />
-			</div>
-			<div>
-				<h3 className="text-sm font-semibold text-foreground">
-					What is a FIRE Number?
-				</h3>
-				<p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-					<strong>Financial Independence, Retire Early (FIRE)</strong> is a
-					strategy built on extreme savings. Your FIRE Number is the exact
-					amount you need to invest so the returns cover your living expenses
-					indefinitely. We’ve calibrated this tool specifically for the Indian
-					economy, factoring in realistic inflation and EPF.
-				</p>
-			</div>
-		</div>
-	);
-}
-
 export function FirePage() {
 	const [draft, setDraft] = useState<FireInputDraft>(() =>
 		createDraft(FIRE_DEFAULTS),
@@ -1402,9 +1386,6 @@ export function FirePage() {
 						</p>
 					</div>
 				</div>
-
-				<FireExplainer />
-
 				<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
 					<InputPanel
 						draft={draft}

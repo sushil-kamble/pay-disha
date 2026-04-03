@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -25,7 +26,7 @@ const COLOR_TOKENS = [
 export function ComparisonChart({ result }: ComparisonChartProps) {
 	const chartConfig = result.offers.reduce<ChartConfig>((acc, item, index) => {
 		acc[item.offer.id] = {
-			label: item.offer.label,
+			label: item.offer.companyName || "Unnamed",
 			color: COLOR_TOKENS[index % COLOR_TOKENS.length] ?? "var(--chart-1)",
 		};
 		return acc;
@@ -33,10 +34,13 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
 	const minChartWidth = Math.max(620, result.offers.length * 110);
 
 	return (
-		<div className="rounded-xl border border-border bg-card p-3">
-			<p className="mb-2 text-sm font-semibold text-foreground">
-				3-year realized value projection
-			</p>
+		<div className="rounded-2xl border border-border bg-card p-4">
+			<div className="mb-3 flex items-center gap-2">
+				<BarChart3 className="h-4 w-4 text-primary" />
+				<p className="text-sm font-semibold text-foreground">
+					3-year realized value
+				</p>
+			</div>
 			<div className="overflow-x-auto pb-1">
 				<div style={{ minWidth: `${minChartWidth}px` }}>
 					<ChartContainer config={chartConfig} className="h-66 w-full">

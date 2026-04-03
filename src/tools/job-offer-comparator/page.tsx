@@ -1,5 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BriefcaseBusiness, ShieldCheck } from "lucide-react";
+import {
+	AlignLeft,
+	ArrowLeft,
+	BriefcaseBusiness,
+	Lightbulb,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SiteFooter, SiteNav } from "#/components/home";
 import { Badge } from "#/components/ui/badge";
@@ -19,6 +24,7 @@ import {
 	SCENARIO_LABELS,
 } from "./constants";
 import { formatCompactCurrency } from "./format";
+import { parseNumberInput } from "./input";
 import {
 	applyEmployerPreset,
 	createDefaultBaselineOffer,
@@ -45,9 +51,16 @@ function nextOfferLabel(offers: OfferInput[]) {
 	return `Offer ${next}`;
 }
 
-function toNumber(value: string) {
-	const parsed = Number.parseFloat(value);
-	return Number.isFinite(parsed) ? parsed : 0;
+export function buildComparedOffers(
+	offers: OfferInput[],
+	showCurrentBaseline: boolean,
+	baselineOffer: OfferInput | null,
+) {
+	if (showCurrentBaseline && baselineOffer) {
+		return [baselineOffer, ...offers];
+	}
+
+	return offers;
 }
 
 export function JobOfferComparatorPage() {
@@ -57,6 +70,9 @@ export function JobOfferComparatorPage() {
 		createDefaultBaselineOffer(),
 	);
 	const [advancedOpenByOfferId, setAdvancedOpenByOfferId] = useState<
+		Record<string, boolean>
+	>({});
+	const [offerOpenByOfferId, setOfferOpenByOfferId] = useState<
 		Record<string, boolean>
 	>({});
 	const [storageReady, setStorageReady] = useState(false);
@@ -72,6 +88,7 @@ export function JobOfferComparatorPage() {
 		setConfig(stored.config);
 		setBaselineOffer(stored.baselineOffer);
 		setAdvancedOpenByOfferId(stored.advancedOpenByOfferId);
+		setOfferOpenByOfferId(stored.offerOpenByOfferId);
 		setStorageReady(true);
 	}, []);
 
@@ -83,15 +100,22 @@ export function JobOfferComparatorPage() {
 			config,
 			baselineOffer,
 			advancedOpenByOfferId,
+			offerOpenByOfferId,
 		});
-	}, [offers, config, baselineOffer, advancedOpenByOfferId, storageReady]);
+	}, [
+		offers,
+		config,
+		baselineOffer,
+		advancedOpenByOfferId,
+		offerOpenByOfferId,
+		storageReady,
+	]);
 
-	const comparedOffers = useMemo(() => {
-		if (config.showCurrentBaseline && baselineOffer) {
-			return [baselineOffer, ...offers];
-		}
-		return offers;
-	}, [config.showCurrentBaseline, baselineOffer, offers]);
+	const comparedOffers = useMemo(
+		() =>
+			buildComparedOffers(offers, config.showCurrentBaseline, baselineOffer),
+		[config.showCurrentBaseline, baselineOffer, offers],
+	);
 
 	const result = useMemo(() => {
 		if (comparedOffers.length < 2) return null;
@@ -162,10 +186,11 @@ export function JobOfferComparatorPage() {
 		setOffers((prev) => {
 			if (prev.length >= MAX_OFFERS) return prev;
 
+			const newId = createOfferId();
 			const template = applyEmployerPreset(
 				{
 					...prev[prev.length - 1],
-					id: createOfferId(),
+					id: newId,
 					label: nextOfferLabel(prev),
 					companyName: "New shortlist",
 					joiningBonus: 0,
@@ -176,6 +201,9 @@ export function JobOfferComparatorPage() {
 				},
 				prev[prev.length - 1]?.employerType ?? "mnc",
 			);
+
+			// New offer defaults to expanded
+			setOfferOpenByOfferId((openState) => ({ ...openState, [newId]: true }));
 
 			return [...prev, template];
 		});
@@ -210,6 +238,7 @@ export function JobOfferComparatorPage() {
 		setConfig(DEFAULT_COMPARE_CONFIG);
 		setBaselineOffer(createDefaultBaselineOffer());
 		setAdvancedOpenByOfferId({});
+		setOfferOpenByOfferId({});
 	};
 
 	return (
@@ -244,11 +273,12 @@ export function JobOfferComparatorPage() {
 				</div>
 
 				<div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start">
-					<div className="space-y-4 lg:sticky lg:top-20">
+					<div className="space-y-4">
 						<QuickCompareForm
 							offers={offers}
 							config={config}
 							advancedOpenByOfferId={advancedOpenByOfferId}
+							offerOpenByOfferId={offerOpenByOfferId}
 							onConfigChange={setConfigField}
 							onOfferFieldChange={updateOfferField}
 							onOfferBenefitChange={updateOfferBenefit}
@@ -257,6 +287,12 @@ export function JobOfferComparatorPage() {
 							onOfferDelete={deleteOffer}
 							onAdvancedOpenChange={(offerId, open) =>
 								setAdvancedOpenByOfferId((prev) => ({
+									...prev,
+									[offerId]: open,
+								}))
+							}
+							onOfferOpenChange={(offerId, open) =>
+								setOfferOpenByOfferId((prev) => ({
 									...prev,
 									[offerId]: open,
 								}))
@@ -296,7 +332,9 @@ export function JobOfferComparatorPage() {
 													prev
 														? {
 																...prev,
-																fixedAnnualCash: toNumber(event.target.value),
+																fixedAnnualCash: parseNumberInput(
+																	event.target.value,
+																),
 															}
 														: prev,
 												)
@@ -314,7 +352,7 @@ export function JobOfferComparatorPage() {
 													prev
 														? {
 																...prev,
-																variableAnnualTarget: toNumber(
+																variableAnnualTarget: parseNumberInput(
 																	event.target.value,
 																),
 															}
@@ -338,11 +376,13 @@ export function JobOfferComparatorPage() {
 									offers={result.offers}
 									includeFit={config.includeQualitativeFit}
 								/>
-
-								<div className="rounded-xl border border-border bg-card p-3">
-									<p className="mb-2 text-sm font-semibold text-foreground">
-										Why this ranking
-									</p>
+								<div className="rounded-2xl border border-border bg-card p-4">
+									<div className="mb-3 flex items-center gap-2">
+										<AlignLeft className="h-4 w-4 text-primary" />
+										<p className="text-sm font-semibold text-foreground">
+											Why this ranking
+										</p>
+									</div>
 									<ul className="space-y-1.5 text-sm text-muted-foreground">
 										{result.narrative.map((line) => (
 											<li key={line} className="leading-relaxed">
@@ -351,17 +391,22 @@ export function JobOfferComparatorPage() {
 										))}
 									</ul>
 								</div>
-
-								<div className="overflow-x-auto pb-1">
-									<div className="flex min-w-max gap-3 pr-1">
+								<div className="rounded-2xl border border-border bg-card p-4">
+									<div className="mb-3 flex items-center gap-2">
+										<Lightbulb className="h-4 w-4 text-primary" />
+										<p className="text-sm font-semibold text-foreground">
+											Offer insights
+										</p>
+									</div>
+									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 										{result.offers.map((offer) => (
 											<div
 												key={offer.offer.id}
-												className="w-72 shrink-0 rounded-xl border border-border bg-card p-3"
+												className="rounded-xl border border-border bg-background p-3"
 											>
 												<div className="mb-2 flex items-center justify-between gap-2">
 													<p className="text-sm font-semibold text-foreground">
-														{offer.offer.label}
+														{offer.offer.companyName || "Unnamed offer"}
 													</p>
 													<Badge variant="outline" className="text-[10px]">
 														{formatCompactCurrency(offer.monthlyTakeHome)}/mo
@@ -376,7 +421,6 @@ export function JobOfferComparatorPage() {
 										))}
 									</div>
 								</div>
-
 								<OfferBreakdownTable offers={result.offers} />
 							</>
 						) : (
@@ -394,17 +438,6 @@ export function JobOfferComparatorPage() {
 							</div>
 						)}
 					</div>
-				</div>
-
-				<div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-					<p className="inline-flex items-center gap-1 font-semibold">
-						<ShieldCheck className="h-3.5 w-3.5" />
-						Data privacy reminder
-					</p>
-					<p className="mt-1">
-						This comparison runs entirely in your browser. Offer details are
-						kept in local storage on your device only.
-					</p>
 				</div>
 			</main>
 			<SiteFooter />

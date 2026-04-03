@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ToolsSipCalculatorRouteImport } from './routes/tools/sip-calculator'
 import { Route as ToolsSalaryGrowthRouteImport } from './routes/tools/salary-growth'
 import { Route as ToolsJobOfferComparatorRouteImport } from './routes/tools/job-offer-comparator'
 import { Route as ToolsInhandSalaryRouteImport } from './routes/tools/inhand-salary'
@@ -19,6 +20,11 @@ import { Route as ToolsBuyVsRentRouteImport } from './routes/tools/buy-vs-rent'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsSipCalculatorRoute = ToolsSipCalculatorRouteImport.update({
+  id: '/tools/sip-calculator',
+  path: '/tools/sip-calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsSalaryGrowthRoute = ToolsSalaryGrowthRouteImport.update({
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
   '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
+  '/tools/sip-calculator': typeof ToolsSipCalculatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
   '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
+  '/tools/sip-calculator': typeof ToolsSipCalculatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/tools/inhand-salary': typeof ToolsInhandSalaryRoute
   '/tools/job-offer-comparator': typeof ToolsJobOfferComparatorRoute
   '/tools/salary-growth': typeof ToolsSalaryGrowthRoute
+  '/tools/sip-calculator': typeof ToolsSipCalculatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/tools/inhand-salary'
     | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
+    | '/tools/sip-calculator'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/tools/inhand-salary'
     | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
+    | '/tools/sip-calculator'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/tools/inhand-salary'
     | '/tools/job-offer-comparator'
     | '/tools/salary-growth'
+    | '/tools/sip-calculator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   ToolsInhandSalaryRoute: typeof ToolsInhandSalaryRoute
   ToolsJobOfferComparatorRoute: typeof ToolsJobOfferComparatorRoute
   ToolsSalaryGrowthRoute: typeof ToolsSalaryGrowthRoute
+  ToolsSipCalculatorRoute: typeof ToolsSipCalculatorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/sip-calculator': {
+      id: '/tools/sip-calculator'
+      path: '/tools/sip-calculator'
+      fullPath: '/tools/sip-calculator'
+      preLoaderRoute: typeof ToolsSipCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tools/salary-growth': {
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   ToolsInhandSalaryRoute: ToolsInhandSalaryRoute,
   ToolsJobOfferComparatorRoute: ToolsJobOfferComparatorRoute,
   ToolsSalaryGrowthRoute: ToolsSalaryGrowthRoute,
+  ToolsSipCalculatorRoute: ToolsSipCalculatorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

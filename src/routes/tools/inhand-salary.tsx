@@ -45,7 +45,7 @@ export const Route = createFileRoute("/tools/inhand-salary")({
 interface PersistedInHandSalaryState {
 	ctcInput: string;
 	expectedExemptionsInput: string;
-	pfMonthly: number;
+	pfMonthlyInput: string;
 	regime: TaxRegime;
 }
 
@@ -61,9 +61,24 @@ function isPersistedInHandSalaryState(
 	return (
 		typeof value.ctcInput === "string" &&
 		typeof value.expectedExemptionsInput === "string" &&
-		typeof value.pfMonthly === "number" &&
+		typeof value.pfMonthlyInput === "string" &&
 		(value.regime === "new" || value.regime === "old")
 	);
+}
+
+function getStoredPfMonthlyInput(value: unknown): string | null {
+	if (!isRecord(value)) return null;
+
+	if (typeof value.pfMonthlyInput === "string") {
+		return value.pfMonthlyInput;
+	}
+
+	// Support older saved state that stored PF as a number.
+	if (typeof value.pfMonthly === "number" && Number.isFinite(value.pfMonthly)) {
+		return String(value.pfMonthly);
+	}
+
+	return null;
 }
 
 function parseStoredJson(rawValue: string | null) {
@@ -81,9 +96,15 @@ function loadStoredInHandSalaryState(): PersistedInHandSalaryState | null {
 		window.localStorage.getItem(INHAND_SALARY_STORAGE_KEY),
 	);
 
-	if (!isPersistedInHandSalaryState(parsed)) return null;
+	if (!isRecord(parsed)) return null;
 
-	return parsed;
+	const pfMonthlyInput = getStoredPfMonthlyInput(parsed);
+	if (!pfMonthlyInput) return null;
+
+	const normalizedState = { ...parsed, pfMonthlyInput };
+	if (!isPersistedInHandSalaryState(normalizedState)) return null;
+
+	return normalizedState;
 }
 
 function saveStoredInHandSalaryState(value: PersistedInHandSalaryState) {
@@ -102,7 +123,9 @@ function saveStoredInHandSalaryState(value: PersistedInHandSalaryState) {
 function InHandSalaryPage() {
 	const [ctcInput, setCtcInput] = useState("");
 	const [expectedExemptionsInput, setExpectedExemptionsInput] = useState("");
-	const [pfMonthly, setPfMonthly] = useState(DEFAULT_PF_MONTHLY);
+	const [pfMonthlyInput, setPfMonthlyInput] = useState(
+		String(DEFAULT_PF_MONTHLY),
+	);
 	const [regime, setRegime] = useState<TaxRegime>("new");
 	const [storageReady, setStorageReady] = useState(false);
 
@@ -111,7 +134,7 @@ function InHandSalaryPage() {
 		if (storedState) {
 			setCtcInput(storedState.ctcInput);
 			setExpectedExemptionsInput(storedState.expectedExemptionsInput);
-			setPfMonthly(storedState.pfMonthly);
+			setPfMonthlyInput(storedState.pfMonthlyInput);
 			setRegime(storedState.regime);
 		}
 
@@ -124,13 +147,18 @@ function InHandSalaryPage() {
 		saveStoredInHandSalaryState({
 			ctcInput,
 			expectedExemptionsInput,
-			pfMonthly,
+			pfMonthlyInput,
 			regime,
 		});
-	}, [ctcInput, expectedExemptionsInput, pfMonthly, regime, storageReady]);
+	}, [ctcInput, expectedExemptionsInput, pfMonthlyInput, regime, storageReady]);
 
 	const ctcLakhs = Number.parseFloat(ctcInput) || 0;
 	const expectedExemptions = Number.parseFloat(expectedExemptionsInput) || 0;
+	const parsedPfMonthly = Number.parseFloat(pfMonthlyInput);
+	const pfMonthly =
+		Number.isFinite(parsedPfMonthly) && parsedPfMonthly >= 0
+			? parsedPfMonthly
+			: 0;
 	const result = calculate(ctcLakhs, pfMonthly, regime, expectedExemptions);
 	const oldResult = result
 		? calculate(ctcLakhs, pfMonthly, "old", expectedExemptions)
@@ -183,7 +211,8 @@ function InHandSalaryPage() {
 							expectedExemptionsInput={expectedExemptionsInput}
 							setExpectedExemptionsInput={setExpectedExemptionsInput}
 							pfMonthly={pfMonthly}
-							setPfMonthly={setPfMonthly}
+							pfMonthlyInput={pfMonthlyInput}
+							setPfMonthlyInput={setPfMonthlyInput}
 							regime={regime}
 							setRegime={setRegime}
 							showWarning={showWarning}
@@ -237,7 +266,8 @@ interface InputPanelProps {
 	expectedExemptionsInput: string;
 	setExpectedExemptionsInput: (v: string) => void;
 	pfMonthly: number;
-	setPfMonthly: (v: number) => void;
+	pfMonthlyInput: string;
+	setPfMonthlyInput: (v: string) => void;
 	regime: TaxRegime;
 	setRegime: (v: TaxRegime) => void;
 	showWarning: boolean;
@@ -249,7 +279,8 @@ function InputPanel({
 	expectedExemptionsInput,
 	setExpectedExemptionsInput,
 	pfMonthly,
-	setPfMonthly,
+	pfMonthlyInput,
+	setPfMonthlyInput,
 	regime,
 	setRegime,
 	showWarning,
@@ -265,8 +296,8 @@ function InputPanel({
 	return (
 		<div className="island-shell rounded-2xl p-6">
 			{/* Regime Toggle */}
-			<div className="mb-6">
-				<Label className="mb-2.5 block text-sm font-semibold text-foreground">
+			<div className="mb-4">
+				<Label className="mb-2 block text-sm font-semibold text-foreground">
 					Tax Regime
 				</Label>
 				<div
@@ -301,10 +332,10 @@ function InputPanel({
 				</p>
 			</div>
 
-			<Separator className="mb-6" />
+			<Separator className="mb-4" />
 
 			{/* CTC Input */}
-			<div className="mb-6">
+			<div className="mb-4">
 				<Label
 					htmlFor="ctc-input"
 					className="mb-2 block text-sm font-semibold text-foreground"
@@ -339,7 +370,7 @@ function InputPanel({
 			</div>
 
 			{/* Expected Exemptions Input */}
-			<div className="mb-6">
+			<div className="mb-4">
 				<Label
 					htmlFor="expected-exemptions-input"
 					className="mb-2 block text-sm font-semibold text-foreground"
@@ -367,7 +398,7 @@ function InputPanel({
 			</div>
 
 			{/* PF Slider */}
-			<div className="mb-6">
+			<div className="mb-4">
 				<div className="mb-2 flex items-center justify-between">
 					<Label className="text-sm font-semibold text-foreground">
 						<span className="flex items-center">
@@ -391,17 +422,16 @@ function InputPanel({
 						<span className="text-xs text-muted-foreground">/mo</span>
 					</div>
 				</div>
-				<div className="relative mt-3">
+				<div className="relative">
 					<Input
 						id="pf-monthly-input"
 						type="number"
 						min={0}
 						step={100}
 						placeholder="e.g. 1800"
-						value={pfMonthly}
+						value={pfMonthlyInput}
 						onChange={(e) => {
-							const next = Number.parseFloat(e.target.value);
-							setPfMonthly(Number.isFinite(next) && next >= 0 ? next : 0);
+							setPfMonthlyInput(e.target.value);
 						}}
 						className="pr-14"
 					/>
@@ -411,7 +441,7 @@ function InputPanel({
 				</div>
 			</div>
 
-			<Separator className="mb-5" />
+			<Separator className="mb-4" />
 
 			{/* Summary note */}
 			<div className="space-y-1.5">
@@ -450,7 +480,10 @@ function InputPanel({
 							: "Old regime only"}
 					</span>
 				</div>
-				<p className="pt-1 text-[11px] leading-relaxed text-muted-foreground">
+
+				<Separator className="my-4" />
+
+				<p className="text-[11px] leading-relaxed text-muted-foreground">
 					These values are restored from local storage in your browser. We are
 					not saving this data anywhere else.
 				</p>

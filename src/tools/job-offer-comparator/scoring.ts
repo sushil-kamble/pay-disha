@@ -1,13 +1,14 @@
 import type { OfferComputed, OfferInput, QualitativeInputs } from "./types";
 
 function toNormalizedScore(value: number, min: number, max: number) {
+	if (Number.isNaN(value) || Number.isNaN(min) || Number.isNaN(max)) return 0;
 	if (max <= min) return 100;
 	return ((value - min) / (max - min)) * 100;
 }
 
 export function qualitativeScore(qualitative: QualitativeInputs) {
-	const values = Object.values(qualitative);
-	const sum = values.reduce((acc, value) => acc + value, 0);
+	const values = Object.values(qualitative ?? {});
+	const sum = values.reduce((acc, value) => acc + (Number(value) || 0), 0);
 	const average = values.length > 0 ? sum / values.length : 0;
 	return Math.max(0, Math.min(100, (average / 5) * 100));
 }
@@ -62,9 +63,9 @@ export function buildTopInsights(offer: OfferInput, computed: OfferComputed) {
 		);
 	}
 
-	if (computed.annualWorkCost > 120000) {
+	if (computed.annualExpenses > 120000) {
 		insights.push(
-			"Location and work-mode costs are materially reducing effective value.",
+			"Role-related expenses are materially reducing effective value.",
 		);
 	}
 

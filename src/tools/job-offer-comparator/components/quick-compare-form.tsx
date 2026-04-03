@@ -1,9 +1,15 @@
-import { Plus, RotateCcw, ShieldCheck } from "lucide-react";
+import { Info, Plus, RotateCcw, ShieldCheck } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import { Slider } from "#/components/ui/slider";
 import { Switch } from "#/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
 import type {
 	BenefitKey,
 	CompareConfig,
@@ -17,6 +23,7 @@ interface QuickCompareFormProps {
 	offers: OfferInput[];
 	config: CompareConfig;
 	advancedOpenByOfferId: Record<string, boolean>;
+	offerOpenByOfferId: Record<string, boolean>;
 	onConfigChange: <K extends keyof CompareConfig>(
 		key: K,
 		value: CompareConfig[K],
@@ -39,6 +46,7 @@ interface QuickCompareFormProps {
 	onOfferDuplicate: (offerId: string) => void;
 	onOfferDelete: (offerId: string) => void;
 	onAdvancedOpenChange: (offerId: string, open: boolean) => void;
+	onOfferOpenChange: (offerId: string, open: boolean) => void;
 	onAddOffer: () => void;
 	onReset: () => void;
 	canAddOffer: boolean;
@@ -48,6 +56,7 @@ export function QuickCompareForm({
 	offers,
 	config,
 	advancedOpenByOfferId,
+	offerOpenByOfferId,
 	onConfigChange,
 	onOfferFieldChange,
 	onOfferBenefitChange,
@@ -55,6 +64,7 @@ export function QuickCompareForm({
 	onOfferDuplicate,
 	onOfferDelete,
 	onAdvancedOpenChange,
+	onOfferOpenChange,
 	onAddOffer,
 	onReset,
 	canAddOffer,
@@ -75,9 +85,46 @@ export function QuickCompareForm({
 			</div>
 
 			<div className="space-y-2">
-				<Label className="text-xs font-semibold text-foreground">
-					Scenario lens
-				</Label>
+				<div className="flex items-center gap-1.5">
+					<Label className="text-xs font-semibold text-foreground">
+						Scenario lens
+					</Label>
+					<TooltipProvider delayDuration={200}>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+								>
+									<Info className="h-3.5 w-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent
+								side="right"
+								className="max-w-xs space-y-2 p-3 text-xs"
+							>
+								<p className="font-semibold">Scenario modes</p>
+								<div className="space-y-1.5 opacity-90">
+									<p>
+										<span className="font-semibold">Conservative</span> —
+										Assumes bonus at 72%, equity at 62%, slower increments. Best
+										for risk-averse planning or volatile companies.
+									</p>
+									<p>
+										<span className="font-semibold">Expected</span> — Uses
+										stated targets as-is. Baseline for comparing offers on equal
+										footing.
+									</p>
+									<p>
+										<span className="font-semibold">Upside</span> — Assumes
+										bonus at 115%, equity at 135%, faster promotion. Useful for
+										high-growth or strong performance scenarios.
+									</p>
+								</div>
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
+				</div>
 				<ScenarioTabs
 					value={config.scenario}
 					onValueChange={(value) => onConfigChange("scenario", value)}
@@ -134,8 +181,10 @@ export function QuickCompareForm({
 					<OfferCard
 						key={offer.id}
 						offer={offer}
+						offerOpen={offerOpenByOfferId[offer.id] ?? true}
 						advancedOpen={advancedOpenByOfferId[offer.id] ?? false}
 						canDelete={offers.length > 2}
+						onOfferOpenChange={(open) => onOfferOpenChange(offer.id, open)}
 						onAdvancedOpenChange={(open) =>
 							onAdvancedOpenChange(offer.id, open)
 						}
@@ -155,12 +204,7 @@ export function QuickCompareForm({
 			</div>
 
 			<div className="flex flex-wrap gap-2">
-				<Button
-					type="button"
-					variant="outline"
-					onClick={onAddOffer}
-					disabled={!canAddOffer}
-				>
+				<Button type="button" onClick={onAddOffer} disabled={!canAddOffer}>
 					<Plus className="h-4 w-4" />
 					Add offer
 				</Button>
