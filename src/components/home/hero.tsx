@@ -81,18 +81,18 @@ export function Hero() {
 					</div>
 
 					<div
-						className="rise-in mt-10 grid grid-cols-1 gap-4 text-sm font-medium text-muted-foreground sm:grid-cols-3 sm:gap-6"
+						className="rise-in mt-10 grid w-full grid-cols-3 gap-2 text-[11px] font-medium text-muted-foreground sm:gap-6 sm:text-sm"
 						style={{ animationDelay: "250ms" }}
 					>
 						{HERO_TRUST_POINTS.map((item) => (
 							<div
 								key={item.text}
-								className="flex items-center justify-center gap-2 rounded-xl border border-border/40 bg-background/40 p-3 backdrop-blur-sm"
+								className="flex min-w-0 items-center justify-center rounded-xl border border-border/40 bg-background/40 px-2 py-2.5 backdrop-blur-sm sm:gap-2 sm:p-3"
 							>
-								<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+								<div className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:flex">
 									<item.icon className="h-4 w-4" />
 								</div>
-								<span className="whitespace-nowrap text-foreground/80">
+								<span className="truncate whitespace-nowrap text-foreground/80">
 									{item.text}
 								</span>
 							</div>

@@ -42,7 +42,7 @@ export function ToolPageHeader({
 	return (
 		<div
 			className={cn(
-				"mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between",
+				"mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-start md:justify-between md:gap-4",
 				className,
 			)}
 		>
@@ -50,7 +50,7 @@ export function ToolPageHeader({
 				<Link
 					to={backHref}
 					className={cn(
-						"mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
+						"mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground md:mb-3",
 						backLinkClassName,
 					)}
 				>
@@ -59,7 +59,7 @@ export function ToolPageHeader({
 				</Link>
 				<h1
 					className={cn(
-						"display-title text-4xl font-bold leading-tight text-foreground md:text-5xl",
+						"display-title text-3xl font-bold leading-tight text-foreground sm:text-4xl md:text-5xl",
 						titleClassName,
 					)}
 				>
@@ -67,7 +67,7 @@ export function ToolPageHeader({
 				</h1>
 				<p
 					className={cn(
-						"mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground",
+						"mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-base",
 						descriptionClassName,
 					)}
 				>
@@ -104,7 +104,7 @@ export function ToolPageShell({
 			style={rootStyle}
 		>
 			<SiteNav />
-			<main className={cn("page-wrap pb-20 pt-8", mainClassName)}>
+			<main className={cn("page-wrap pb-20 pt-5 sm:pt-8", mainClassName)}>
 				<ToolPageHeader
 					title={title}
 					description={description}
