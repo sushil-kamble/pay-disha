@@ -693,7 +693,7 @@ function HeroCard({ result }: { result: SipResult }) {
 					</p>
 				</div>
 
-				<div className="rounded-[24px] border border-white/15 bg-black/10 p-5 backdrop-blur-md">
+				<div className="rounded-3xl border border-white/15 bg-black/10 p-5 backdrop-blur-md">
 					<p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
 						Best next move
 					</p>
@@ -861,7 +861,7 @@ function ProjectionChart({
 					content={
 						<ChartTooltipContent
 							formatter={(value, name) => (
-								<div className="flex min-w-[180px] items-center justify-between gap-4">
+								<div className="flex min-w-45 items-center justify-between gap-4">
 									<span className="text-sm text-muted-foreground">
 										{chartConfig[String(name)]?.label ?? String(name)}
 									</span>
@@ -1202,7 +1202,7 @@ function YearByYearTable({
 				</div>
 
 				<CollapsibleContent className="mt-8 overflow-x-auto">
-					<div className="min-w-[760px] rounded-xl border border-border bg-card">
+					<div className="min-w-190 rounded-xl border border-border bg-card">
 						<Table>
 							<TableHeader className="bg-muted/50">
 								<TableRow>
