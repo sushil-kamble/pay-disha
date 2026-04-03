@@ -8,23 +8,28 @@ const HERO_TRUST_POINTS = [
 
 export function Hero() {
 	return (
-		<section
-			className="relative overflow-hidden py-24 md:py-32 lg:py-40"
-			style={{
-				background:
-					"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(79,70,229,0.15) 0%, transparent 70%), radial-gradient(ellipse 60% 60% at 100% 100%, rgba(6,182,212,0.1) 0%, transparent 60%)",
-			}}
-		>
-			<div
-				className="pointer-events-none absolute inset-0 -z-10 opacity-[0.03]"
-				style={{
-					backgroundImage:
-						"linear-gradient(var(--indigo) 1px, transparent 1px), linear-gradient(90deg, var(--indigo) 1px, transparent 1px)",
-					backgroundSize: "64px 64px",
-				}}
-			/>
+		<section className="relative overflow-hidden py-24 md:py-32 lg:py-40 bg-background">
+			{/* Animated Background Elements */}
+			<div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden">
+				{/* Background Mesh Gradient (More visible than before) */}
+				<div className="absolute inset-0 bg-linear-to-b from-primary/5 via-background to-background" />
 
-			<div className="pointer-events-none absolute left-1/2 top-1/4 -z-10 h-125 w-125 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[120px]" />
+				{/* Grid Pattern (Stronger opacity to be clearly visible) */}
+				<div
+					className="absolute inset-0 opacity-10 dark:opacity-[0.15]"
+					style={{
+						backgroundImage:
+							"linear-gradient(to right, var(--primary) 1px, transparent 1px), linear-gradient(to bottom, var(--primary) 1px, transparent 1px)",
+						backgroundSize: "64px 64px",
+						maskImage:
+							"radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent)",
+					}}
+				/>
+
+				{/* Glowing orbs (Positioned closer to center, larger and more opaque) */}
+				<div className="absolute top-[-10%] left-[20%] h-125 w-125 rounded-full bg-indigo-500/20 blur-[120px] mix-blend-normal animate-pulse duration-7000" />
+				<div className="absolute top-[10%] right-[20%] h-150 w-150 rounded-full bg-cyan-500/15 blur-[120px] mix-blend-normal animate-pulse duration-10000" />
+			</div>
 
 			<div className="page-wrap relative z-10 w-full">
 				<div className="mx-auto flex max-w-4xl flex-col items-center text-center">
