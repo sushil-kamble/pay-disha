@@ -11,6 +11,8 @@ import {
 	Wallet,
 } from "lucide-react";
 
+import { SITE_NAME } from "#/lib/site";
+
 export type Category = "all" | "salary" | "career" | "life" | "retirement";
 
 export type ToolStatus = "live" | "cooking";
@@ -118,7 +120,7 @@ export const TRUST_PILLARS: TrustPillar[] = [
 		iconColor: "text-[#10b981]",
 		iconBg: "bg-[#10b981]/10",
 		heading: "Free, forever",
-		desc: "Every tool on PayDisha is free to use. No subscriptions, no paywalls, no hidden premium tier.",
+		desc: `Every tool on ${SITE_NAME} is free to use. No subscriptions, no paywalls, no hidden premium tier.`,
 	},
 	{
 		icon: UserX,

@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 
 import { TOOLS } from "#/components/home/data";
+import {
+	SITE_DOMAIN,
+	SITE_FULL_NAME,
+	SITE_PARENT_BRAND,
+	SITE_PARENT_TAGLINE,
+} from "#/lib/site";
 
 import { Logo } from "./logo";
 
@@ -19,8 +25,8 @@ export function SiteFooter() {
 					<div>
 						<Logo />
 						<p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-							Free financial tools for every salaried professional in India. No
-							tracking, no accounts, no cost.
+							{SITE_FULL_NAME} is a privacy-first collection of useful financial
+							tools for salaried India. No tracking, no accounts, no cost.
 						</p>
 					</div>
 					<div>
@@ -50,12 +56,15 @@ export function SiteFooter() {
 						</ul>
 					</div>
 				</div>
-				<div className="flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+			</div>
+			<div className="border-t border-border">
+				<div className="page-wrap flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
 					<p className="text-xs text-muted-foreground">
-						© 2025 PayDisha. Made with ♥ for salaried India.
+						© 2025 {SITE_FULL_NAME}. {SITE_PARENT_BRAND}: {SITE_PARENT_TAGLINE}
 					</p>
 					<p className="text-xs text-muted-foreground">
-						Not financial advice. Always verify with a professional.
+						Hosted on {SITE_DOMAIN}. Not financial advice. Always verify with a
+						professional.
 					</p>
 				</div>
 			</div>

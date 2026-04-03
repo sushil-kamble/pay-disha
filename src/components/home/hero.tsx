@@ -1,5 +1,12 @@
 import { ArrowRight, Check, EyeOff, Lock, UserX } from "lucide-react";
 
+import {
+	SITE_NAME,
+	SITE_PARENT_BRAND,
+	SITE_PARENT_MARK,
+	SITE_PARENT_TAGLINE,
+} from "#/lib/site";
+
 const HERO_TRUST_POINTS = [
 	{ icon: Check, text: "100% Free" },
 	{ icon: UserX, text: "No sign-up" },
@@ -13,28 +20,44 @@ export function Hero() {
 				<div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.96),rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.82)_100%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.96),rgba(2,6,23,0.92)_30%,rgba(2,6,23,0.88)_100%)]" />
 				<div className="absolute inset-x-1/2 -top-48 h-112 w-md -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
 				<div className="absolute -left-32 top-32 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl dark:bg-amber-500/10" />
-				<div className="absolute -right-32 top-40 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/10" />
 				<div className="absolute inset-0 bg-[radial-gradient(var(--line)_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_60%_60%_at_50%_40%,#000_20%,transparent_100%)]" />
 			</div>
 
 			<div className="page-wrap relative z-10 w-full px-4 md:px-6">
 				<div className="mx-auto flex max-w-200 flex-col items-center text-center">
+					<p
+						className="rise-in mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-sm font-medium text-muted-foreground shadow-sm backdrop-blur-sm"
+						style={{ animationDelay: "60ms" }}
+					>
+						<span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold tracking-[0.14em] text-primary-foreground">
+							{SITE_PARENT_MARK}
+						</span>
+						<span>{SITE_PARENT_TAGLINE}</span>
+					</p>
 					<h1
 						className="display-title rise-in mb-6 text-balance text-5xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-6xl lg:text-7xl"
 						style={{ animationDelay: "100ms" }}
 					>
-						Make better money decisions,{" "}
-						<span className="bg-linear-to-r bg-clip-text text-transparent from-primary to-primary/60">
-							instantly.
+						<span className="block whitespace-nowrap">
+							<span className="text-primary">{SITE_NAME}</span>{" "}
+							<span className="text-foreground">by </span>
+							<span className="text-foreground">{SITE_PARENT_BRAND}</span>
+						</span>
+						<span className="mt-3 block text-3xl font-semibold leading-tight text-foreground sm:text-4xl lg:text-5xl">
+							for better money decisions.{" "}
+							<span className="underline decoration-primary decoration-[0.16em] underline-offset-[0.18em]">
+								Instantly
+							</span>
 						</span>
 					</h1>
 
 					<p
-						className="rise-in mb-10 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl"
+						className="rise-in mb-10 max-w-3xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl"
 						style={{ animationDelay: "150ms" }}
 					>
 						No sign-ups. No data tracking. Just incredibly fast calculators for
-						your salary, taxes, career growth, and retirement planning.
+						your salary, taxes, career growth, and retirement planning, built
+						for salaried India.
 					</p>
 
 					<div
