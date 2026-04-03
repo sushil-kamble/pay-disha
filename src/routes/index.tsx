@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { SiteFooter, SiteNav } from "#/components/common";
-import {
-	ComingSoonBanner,
-	CTABanner,
-	Hero,
-	ToolsSection,
-	TrustPillars,
-} from "#/components/home";
+import { Hero, ToolsSection, TrustPillars } from "#/components/home";
 
 export const Route = createFileRoute("/")({ component: HomePage });
 
@@ -17,10 +11,9 @@ function HomePage() {
 			<SiteNav />
 			<main>
 				<Hero />
+				<hr className="w-full border-t border-border/50" />
 				<ToolsSection />
 				<TrustPillars />
-				<ComingSoonBanner />
-				<CTABanner />
 			</main>
 			<SiteFooter />
 		</div>

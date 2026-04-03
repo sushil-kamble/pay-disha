@@ -8,51 +8,29 @@ const HERO_TRUST_POINTS = [
 
 export function Hero() {
 	return (
-		<section className="relative overflow-hidden py-24 md:py-32 lg:py-40 bg-background">
-			{/* Animated Background Elements */}
-			<div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden">
-				{/* Background Mesh Gradient (More visible than before) */}
-				<div className="absolute inset-0 bg-linear-to-b from-primary/5 via-background to-background" />
-
-				{/* Grid Pattern (Stronger opacity to be clearly visible) */}
-				<div
-					className="absolute inset-0 opacity-10 dark:opacity-[0.15]"
-					style={{
-						backgroundImage:
-							"linear-gradient(to right, var(--primary) 1px, transparent 1px), linear-gradient(to bottom, var(--primary) 1px, transparent 1px)",
-						backgroundSize: "64px 64px",
-						maskImage:
-							"radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent)",
-					}}
-				/>
-
-				{/* Glowing orbs (Positioned closer to center, larger and more opaque) */}
-				<div className="absolute top-[-10%] left-[20%] h-125 w-125 rounded-full bg-indigo-500/20 blur-[120px] mix-blend-normal animate-pulse duration-7000" />
-				<div className="absolute top-[10%] right-[20%] h-150 w-150 rounded-full bg-cyan-500/15 blur-[120px] mix-blend-normal animate-pulse duration-10000" />
+		<section className="relative flex min-h-[68vh] w-full flex-col items-center justify-start overflow-hidden bg-background pt-28 pb-12">
+			<div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+				<div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.96),rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.82)_100%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.96),rgba(2,6,23,0.92)_30%,rgba(2,6,23,0.88)_100%)]" />
+				<div className="absolute inset-x-1/2 -top-48 h-112 w-md -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
+				<div className="absolute -left-32 top-32 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl dark:bg-amber-500/10" />
+				<div className="absolute -right-32 top-40 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/10" />
+				<div className="absolute inset-0 bg-[radial-gradient(var(--line)_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_60%_60%_at_50%_40%,#000_20%,transparent_100%)]" />
 			</div>
 
-			<div className="page-wrap relative z-10 w-full">
-				<div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+			<div className="page-wrap relative z-10 w-full px-4 md:px-6">
+				<div className="mx-auto flex max-w-200 flex-col items-center text-center">
 					<h1
-						className="display-title rise-in mb-6 max-w-4xl text-5xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-[5rem]"
+						className="display-title rise-in mb-6 text-balance text-5xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-6xl lg:text-7xl"
 						style={{ animationDelay: "100ms" }}
 					>
 						Make better money decisions,{" "}
-						<span
-							style={{
-								background:
-									"linear-gradient(135deg, var(--indigo) 0%, var(--cyan) 100%)",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-								backgroundClip: "text",
-							}}
-						>
+						<span className="bg-linear-to-r bg-clip-text text-transparent from-primary to-primary/60">
 							instantly.
 						</span>
 					</h1>
 
 					<p
-						className="rise-in mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
+						className="rise-in mb-10 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl"
 						style={{ animationDelay: "150ms" }}
 					>
 						No sign-ups. No data tracking. Just incredibly fast calculators for
@@ -60,28 +38,19 @@ export function Hero() {
 					</p>
 
 					<div
-						className="rise-in flex w-full flex-col items-center justify-center gap-4 sm:w-auto sm:flex-row"
+						className="rise-in flex w-full flex-col items-center justify-center gap-4 sm:flex-row"
 						style={{ animationDelay: "200ms" }}
 					>
 						<a
 							href="#tools"
-							className="group relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-8 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/40 sm:w-auto"
+							className="group relative flex h-14 w-full sm:w-auto items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 						>
-							<span
-								className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-								style={{
-									background:
-										"linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-								}}
-							/>
-							<span className="relative flex items-center gap-2">
-								Explore all tools
-								<ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-							</span>
+							<span>Explore all tools</span>
+							<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
 						</a>
 						<a
 							href="#why"
-							className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-input bg-background px-8 text-base font-semibold text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted active:scale-[0.98] sm:w-auto"
+							className="flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border-2 border-border/50 bg-background/50 px-8 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:border-border hover:bg-muted active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 						>
 							<Lock className="h-4 w-4 text-muted-foreground" />
 							Why it's free
@@ -89,19 +58,21 @@ export function Hero() {
 					</div>
 
 					<div
-						className="rise-in mt-10 grid grid-cols-2 gap-4 text-sm font-medium text-muted-foreground sm:flex sm:justify-center sm:gap-6"
+						className="rise-in mt-10 grid grid-cols-1 gap-4 text-sm font-medium text-muted-foreground sm:grid-cols-3 sm:gap-6"
 						style={{ animationDelay: "250ms" }}
 					>
 						{HERO_TRUST_POINTS.map((item) => (
-							<span
+							<div
 								key={item.text}
-								className="flex items-center justify-start gap-2"
+								className="flex items-center justify-center gap-2 rounded-xl border border-border/40 bg-background/40 p-3 backdrop-blur-sm"
 							>
-								<div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-400/20 dark:text-emerald-400">
-									<item.icon className="h-3.5 w-3.5" />
+								<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+									<item.icon className="h-4 w-4" />
 								</div>
-								<span className="whitespace-nowrap">{item.text}</span>
-							</span>
+								<span className="whitespace-nowrap text-foreground/80">
+									{item.text}
+								</span>
+							</div>
 						))}
 					</div>
 				</div>

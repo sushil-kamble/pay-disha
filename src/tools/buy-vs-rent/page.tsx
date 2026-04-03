@@ -1,6 +1,4 @@
-import { Link } from "@tanstack/react-router";
 import {
-	ArrowLeft,
 	ChevronDown,
 	HeartHandshake,
 	Home,
@@ -22,7 +20,7 @@ import {
 	YAxis,
 } from "recharts";
 
-import { SiteFooter, SiteNav } from "#/components/home";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -425,334 +423,315 @@ export function BuyVsRentPage() {
 	}
 
 	return (
-		<div className="min-h-dvh bg-background text-foreground">
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				<div className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div>
-						<Link
-							to="/"
-							className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-						>
-							<ArrowLeft className="size-3.5" />
-							Back to Tools
-						</Link>
-						<h1 className="display-title text-4xl font-bold leading-tight md:text-5xl">
-							Buy vs Rent
-						</h1>
-						<p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">
-							A private decision engine for salaried India: see whether buying
-							or renting leaves you stronger, why the result leans that way, and
-							when the other choice starts making sense.
-						</p>
-					</div>
-					<Badge
-						variant="secondary"
-						className="rounded-full px-3 py-1 text-xs font-semibold"
-					>
-						All calculations stay in your browser
-					</Badge>
-				</div>
-
-				<div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
-					<div className="self-start">
-						<div className={cn(surfaceClassName, "p-6")}>
-							<div className="mb-5 flex items-center justify-between gap-3">
-								<div>
-									<p className={sectionLabelClassName}>Quick setup</p>
-									<p className="text-sm text-muted-foreground">
-										Keep it simple. The tool fills the rest with sensible
-										defaults.
-									</p>
-								</div>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onClick={resetDefaults}
-								>
-									<RefreshCcw className="size-4" />
-									Reset
-								</Button>
+		<ToolPageShell
+			title="Buy vs Rent"
+			description="A private decision engine for salaried India: see whether buying or renting leaves you stronger, why the result leans that way, and when the other choice starts making sense."
+			tag={
+				<Badge
+					variant="secondary"
+					className="rounded-full px-3 py-1 text-xs font-semibold"
+				>
+					All calculations stay in your browser
+				</Badge>
+			}
+			className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
+		>
+			<div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
+				<div className="self-start">
+					<div className={cn(surfaceClassName, "p-6")}>
+						<div className="mb-5 flex items-center justify-between gap-3">
+							<div>
+								<p className={sectionLabelClassName}>Quick setup</p>
+								<p className="text-sm text-muted-foreground">
+									Keep it simple. The tool fills the rest with sensible
+									defaults.
+								</p>
 							</div>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={resetDefaults}
+							>
+								<RefreshCcw className="size-4" />
+								Reset
+							</Button>
+						</div>
 
-							<div className="space-y-5">
-								<Field
-									id="property-price"
-									label="Home price"
-									value={propertyPriceLakhs}
-									onChange={setPropertyPriceLakhs}
-									placeholder="90"
-									suffix="L"
-									helper={`= ₹${formatIndian(propertyPriceRupees)}`}
-								/>
-								<Field
-									id="monthly-rent"
-									label="Monthly rent for a similar home"
-									value={monthlyRent}
-									onChange={setMonthlyRent}
-									placeholder="30000"
-									suffix="/mo"
-								/>
-								<SliderField
-									label="How long do you expect to stay?"
-									value={stayYears}
-									onChange={setStayYears}
-									min={1}
-									max={20}
-									step={1}
-									valueLabel={`${stayYears} years`}
-									helper="Holding period is the biggest driver in this decision."
-								/>
-								<SliderField
-									label="Down payment"
-									value={downPaymentPct}
-									onChange={setDownPaymentPct}
-									min={10}
-									max={50}
-									step={1}
-									valueLabel={`${downPaymentPct}%`}
-									helper={`That is roughly ${formatCurrency(downPaymentValue)} up front.`}
-								/>
-								<Field
-									id="loan-rate"
-									label="Home loan interest rate"
-									value={homeLoanRatePct}
-									onChange={setHomeLoanRatePct}
-									placeholder="8.75"
-									suffix="%"
-								/>
+						<div className="space-y-5">
+							<Field
+								id="property-price"
+								label="Home price"
+								value={propertyPriceLakhs}
+								onChange={setPropertyPriceLakhs}
+								placeholder="90"
+								suffix="L"
+								helper={`= ₹${formatIndian(propertyPriceRupees)}`}
+							/>
+							<Field
+								id="monthly-rent"
+								label="Monthly rent for a similar home"
+								value={monthlyRent}
+								onChange={setMonthlyRent}
+								placeholder="30000"
+								suffix="/mo"
+							/>
+							<SliderField
+								label="How long do you expect to stay?"
+								value={stayYears}
+								onChange={setStayYears}
+								min={1}
+								max={20}
+								step={1}
+								valueLabel={`${stayYears} years`}
+								helper="Holding period is the biggest driver in this decision."
+							/>
+							<SliderField
+								label="Down payment"
+								value={downPaymentPct}
+								onChange={setDownPaymentPct}
+								min={10}
+								max={50}
+								step={1}
+								valueLabel={`${downPaymentPct}%`}
+								helper={`That is roughly ${formatCurrency(downPaymentValue)} up front.`}
+							/>
+							<Field
+								id="loan-rate"
+								label="Home loan interest rate"
+								value={homeLoanRatePct}
+								onChange={setHomeLoanRatePct}
+								placeholder="8.75"
+								suffix="%"
+							/>
 
-								<Separator />
+							<Separator />
 
-								<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-									<div className={cn(subSurfaceClassName, "p-4")}>
-										<div className="flex items-center justify-between gap-3">
-											<div>
-												<div className="flex items-center gap-1.5">
-													<p className="text-sm font-semibold text-foreground">
-														Make it more accurate
-													</p>
-													<TooltipInfo text="These assumptions shape the final recommendation, but you do not need to touch them for a useful first answer." />
-												</div>
-												<p className="mt-1 text-xs text-muted-foreground">
-													Useful when you know your market better than the
-													defaults.
+							<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+								<div className={cn(subSurfaceClassName, "p-4")}>
+									<div className="flex items-center justify-between gap-3">
+										<div>
+											<div className="flex items-center gap-1.5">
+												<p className="text-sm font-semibold text-foreground">
+													Make it more accurate
 												</p>
+												<TooltipInfo text="These assumptions shape the final recommendation, but you do not need to touch them for a useful first answer." />
 											</div>
-											<CollapsibleTrigger asChild>
-												<Button type="button" variant="outline" size="sm">
-													{advancedOpen ? "Hide" : "Show"}
-													<ChevronDown
-														className={cn(
-															"size-4 transition-transform",
-															advancedOpen && "rotate-180",
-														)}
-													/>
-												</Button>
-											</CollapsibleTrigger>
+											<p className="mt-1 text-xs text-muted-foreground">
+												Useful when you know your market better than the
+												defaults.
+											</p>
 										</div>
-
-										<CollapsibleContent className="mt-4 space-y-4">
-											<Field
-												id="loan-tenure"
-												label="Loan tenure"
-												value={loanTenureYears}
-												onChange={setLoanTenureYears}
-												placeholder="20"
-												suffix="yrs"
-											/>
-											<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-												<Field
-													id="property-appreciation"
-													label="Property growth"
-													value={propertyAppreciationPct}
-													onChange={setPropertyAppreciationPct}
-													placeholder="6"
-													suffix="%"
+										<CollapsibleTrigger asChild>
+											<Button type="button" variant="outline" size="sm">
+												{advancedOpen ? "Hide" : "Show"}
+												<ChevronDown
+													className={cn(
+														"size-4 transition-transform",
+														advancedOpen && "rotate-180",
+													)}
 												/>
-												<Field
-													id="rent-growth"
-													label="Rent growth"
-													value={rentIncreasePct}
-													onChange={setRentIncreasePct}
-													placeholder="6"
-													suffix="%"
-												/>
-											</div>
-											<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-												<Field
-													id="investment-return"
-													label="Investment return"
-													value={investmentReturnPct}
-													onChange={setInvestmentReturnPct}
-													placeholder="10"
-													suffix="%"
-													helper="Used for the rent-and-invest path."
-												/>
-												<Field
-													id="inflation-rate"
-													label="Inflation rate"
-													value={inflationRatePct}
-													onChange={setInflationRatePct}
-													placeholder="6"
-													suffix="%"
-													helper="Used only for the real-value chart toggle."
-												/>
-											</div>
-											<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-												<Field
-													id="maintenance"
-													label="Maintenance reserve"
-													value={annualMaintenancePct}
-													onChange={setAnnualMaintenancePct}
-													placeholder="1.4"
-													suffix="%"
-													helper="Applied on the home value each year."
-												/>
-												<Field
-													id="owner-fixed-costs"
-													label="Owner fixed costs"
-													value={annualOwnerFixedCosts}
-													onChange={setAnnualOwnerFixedCosts}
-													placeholder="36000"
-													suffix="/yr"
-													helper="Property tax, insurance, small repairs."
-												/>
-											</div>
-											<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-												<Field
-													id="purchase-costs"
-													label="Purchase costs"
-													value={purchaseCostPct}
-													onChange={setPurchaseCostPct}
-													placeholder="7"
-													suffix="%"
-													helper="Stamp duty, registration, legal, setup."
-												/>
-												<Field
-													id="sale-costs"
-													label="Exit costs when selling"
-													value={saleCostPct}
-													onChange={setSaleCostPct}
-													placeholder="2"
-													suffix="%"
-													helper="Brokerage and selling friction."
-												/>
-											</div>
-											<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-												<Field
-													id="deposit-months"
-													label="Security deposit"
-													value={rentDepositMonths}
-													onChange={setRentDepositMonths}
-													placeholder="3"
-													suffix="months"
-												/>
-												<Field
-													id="brokerage-months"
-													label="Rent brokerage"
-													value={rentBrokerageMonths}
-													onChange={setRentBrokerageMonths}
-													placeholder="1"
-													suffix="months"
-												/>
-											</div>
-										</CollapsibleContent>
+											</Button>
+										</CollapsibleTrigger>
 									</div>
-								</Collapsible>
 
-								<Collapsible open={taxOpen} onOpenChange={setTaxOpen}>
-									<div className={cn(subSurfaceClassName, "p-4")}>
-										<div className="flex items-center justify-between gap-3">
-											<div>
-												<div className="flex items-center gap-1.5">
-													<p className="text-sm font-semibold text-foreground">
-														Salary and tax refinements
-													</p>
-													<TooltipInfo text="Keep these at zero if you want a pure housing decision. Add them only when you know your likely annual tax savings." />
-												</div>
-												<p className="mt-1 text-xs text-muted-foreground">
-													Useful when old-regime HRA or home-loan deductions
-													materially affect you.
-												</p>
-											</div>
-											<CollapsibleTrigger asChild>
-												<Button type="button" variant="outline" size="sm">
-													{taxOpen ? "Hide" : "Show"}
-													<ChevronDown
-														className={cn(
-															"size-4 transition-transform",
-															taxOpen && "rotate-180",
-														)}
-													/>
-												</Button>
-											</CollapsibleTrigger>
+									<CollapsibleContent className="mt-4 space-y-4">
+										<Field
+											id="loan-tenure"
+											label="Loan tenure"
+											value={loanTenureYears}
+											onChange={setLoanTenureYears}
+											placeholder="20"
+											suffix="yrs"
+										/>
+										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
+											<Field
+												id="property-appreciation"
+												label="Property growth"
+												value={propertyAppreciationPct}
+												onChange={setPropertyAppreciationPct}
+												placeholder="6"
+												suffix="%"
+											/>
+											<Field
+												id="rent-growth"
+												label="Rent growth"
+												value={rentIncreasePct}
+												onChange={setRentIncreasePct}
+												placeholder="6"
+												suffix="%"
+											/>
 										</div>
-
-										<CollapsibleContent className="mt-4 space-y-4">
+										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
 											<Field
-												id="buy-tax-benefit"
-												label="Annual buy-side tax benefit"
-												value={annualBuyTaxBenefit}
-												onChange={setAnnualBuyTaxBenefit}
-												placeholder="0"
+												id="investment-return"
+												label="Investment return"
+												value={investmentReturnPct}
+												onChange={setInvestmentReturnPct}
+												placeholder="10"
+												suffix="%"
+												helper="Used for the rent-and-invest path."
+											/>
+											<Field
+												id="inflation-rate"
+												label="Inflation rate"
+												value={inflationRatePct}
+												onChange={setInflationRatePct}
+												placeholder="6"
+												suffix="%"
+												helper="Used only for the real-value chart toggle."
+											/>
+										</div>
+										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
+											<Field
+												id="maintenance"
+												label="Maintenance reserve"
+												value={annualMaintenancePct}
+												onChange={setAnnualMaintenancePct}
+												placeholder="1.4"
+												suffix="%"
+												helper="Applied on the home value each year."
+											/>
+											<Field
+												id="owner-fixed-costs"
+												label="Owner fixed costs"
+												value={annualOwnerFixedCosts}
+												onChange={setAnnualOwnerFixedCosts}
+												placeholder="36000"
 												suffix="/yr"
-												helper="Example: estimated Section 24 / 80C benefit."
+												helper="Property tax, insurance, small repairs."
+											/>
+										</div>
+										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
+											<Field
+												id="purchase-costs"
+												label="Purchase costs"
+												value={purchaseCostPct}
+												onChange={setPurchaseCostPct}
+												placeholder="7"
+												suffix="%"
+												helper="Stamp duty, registration, legal, setup."
 											/>
 											<Field
-												id="rent-tax-benefit"
-												label="Annual rent-side tax benefit"
-												value={annualRentTaxBenefit}
-												onChange={setAnnualRentTaxBenefit}
-												placeholder="0"
-												suffix="/yr"
-												helper="Example: expected HRA tax saving while renting."
+												id="sale-costs"
+												label="Exit costs when selling"
+												value={saleCostPct}
+												onChange={setSaleCostPct}
+												placeholder="2"
+												suffix="%"
+												helper="Brokerage and selling friction."
+											/>
+										</div>
+										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
+											<Field
+												id="deposit-months"
+												label="Security deposit"
+												value={rentDepositMonths}
+												onChange={setRentDepositMonths}
+												placeholder="3"
+												suffix="months"
 											/>
 											<Field
-												id="take-home-pay"
-												label="Monthly take-home pay"
-												value={monthlyTakeHomePay}
-												onChange={setMonthlyTakeHomePay}
-												placeholder="0"
-												suffix="/mo"
-												helper="Optional. Adds a stress test based on your income."
+												id="brokerage-months"
+												label="Rent brokerage"
+												value={rentBrokerageMonths}
+												onChange={setRentBrokerageMonths}
+												placeholder="1"
+												suffix="months"
 											/>
-										</CollapsibleContent>
-									</div>
-								</Collapsible>
-
-								<div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-									<div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-										<ShieldCheck className="size-4 text-primary" />
-										Private by design
-									</div>
-									The tool runs entirely in your browser. We are not storing
-									your house decision, salary assumptions, or tax numbers
-									anywhere.
+										</div>
+									</CollapsibleContent>
 								</div>
+							</Collapsible>
+
+							<Collapsible open={taxOpen} onOpenChange={setTaxOpen}>
+								<div className={cn(subSurfaceClassName, "p-4")}>
+									<div className="flex items-center justify-between gap-3">
+										<div>
+											<div className="flex items-center gap-1.5">
+												<p className="text-sm font-semibold text-foreground">
+													Salary and tax refinements
+												</p>
+												<TooltipInfo text="Keep these at zero if you want a pure housing decision. Add them only when you know your likely annual tax savings." />
+											</div>
+											<p className="mt-1 text-xs text-muted-foreground">
+												Useful when old-regime HRA or home-loan deductions
+												materially affect you.
+											</p>
+										</div>
+										<CollapsibleTrigger asChild>
+											<Button type="button" variant="outline" size="sm">
+												{taxOpen ? "Hide" : "Show"}
+												<ChevronDown
+													className={cn(
+														"size-4 transition-transform",
+														taxOpen && "rotate-180",
+													)}
+												/>
+											</Button>
+										</CollapsibleTrigger>
+									</div>
+
+									<CollapsibleContent className="mt-4 space-y-4">
+										<Field
+											id="buy-tax-benefit"
+											label="Annual buy-side tax benefit"
+											value={annualBuyTaxBenefit}
+											onChange={setAnnualBuyTaxBenefit}
+											placeholder="0"
+											suffix="/yr"
+											helper="Example: estimated Section 24 / 80C benefit."
+										/>
+										<Field
+											id="rent-tax-benefit"
+											label="Annual rent-side tax benefit"
+											value={annualRentTaxBenefit}
+											onChange={setAnnualRentTaxBenefit}
+											placeholder="0"
+											suffix="/yr"
+											helper="Example: expected HRA tax saving while renting."
+										/>
+										<Field
+											id="take-home-pay"
+											label="Monthly take-home pay"
+											value={monthlyTakeHomePay}
+											onChange={setMonthlyTakeHomePay}
+											placeholder="0"
+											suffix="/mo"
+											helper="Optional. Adds a stress test based on your income."
+										/>
+									</CollapsibleContent>
+								</div>
+							</Collapsible>
+
+							<div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+								<div className="mb-2 flex items-center gap-2 font-medium text-foreground">
+									<ShieldCheck className="size-4 text-primary" />
+									Private by design
+								</div>
+								The tool runs entirely in your browser. We are not storing your
+								house decision, salary assumptions, or tax numbers anywhere.
 							</div>
 						</div>
 					</div>
-
-					<div className="space-y-5">
-						<VerdictHero result={result} />
-						<SummaryCards result={result} />
-						<NetWorthChart
-							result={result}
-							showRealView={showRealView}
-							setShowRealView={setShowRealView}
-						/>
-						<CashFlowChart result={result} />
-						<ScenarioCards result={result} />
-						<DecisionContext result={result} />
-						<InsightsGrid result={result} />
-						<ComparisonTable result={result} />
-					</div>
 				</div>
-			</main>
-			<SiteFooter />
-		</div>
+
+				<div className="space-y-5">
+					<VerdictHero result={result} />
+					<SummaryCards result={result} />
+					<NetWorthChart
+						result={result}
+						showRealView={showRealView}
+						setShowRealView={setShowRealView}
+					/>
+					<CashFlowChart result={result} />
+					<ScenarioCards result={result} />
+					<DecisionContext result={result} />
+					<InsightsGrid result={result} />
+					<ComparisonTable result={result} />
+				</div>
+			</div>
+		</ToolPageShell>
 	);
 }
 

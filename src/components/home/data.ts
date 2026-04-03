@@ -1,13 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
-	ArrowLeftRight,
 	Briefcase,
-	Building2,
 	Calculator,
 	EyeOff,
 	Flame,
 	Home,
-	PiggyBank,
 	Target,
 	TrendingUp,
 	UserX,
@@ -16,7 +13,7 @@ import {
 
 export type Category = "all" | "salary" | "career" | "life" | "retirement";
 
-export type ToolStatus = "live" | "coming-soon";
+export type ToolStatus = "live" | "cooking";
 
 export type Tool = {
 	id: string;
@@ -49,7 +46,7 @@ export const CATEGORIES: { id: Category; label: string }[] = [
 export const TOOLS: Tool[] = [
 	{
 		id: "inhand-salary",
-		name: "In-Hand Salary Calculator",
+		name: "In-hand Salary Calculator",
 		desc: "Convert your CTC to exact monthly take-home in seconds",
 		category: "salary",
 		icon: Calculator,
@@ -59,28 +56,6 @@ export const TOOLS: Tool[] = [
 		href: "/tools/inhand-salary",
 	},
 	{
-		id: "tax-regime",
-		name: "Tax Regime Comparison",
-		desc: "Old vs New regime — see exactly which one saves you more",
-		category: "salary",
-		icon: ArrowLeftRight,
-		color: "text-[#06b6d4]",
-		bg: "bg-[#06b6d4]/10",
-		status: "coming-soon",
-		href: null,
-	},
-	{
-		id: "hra",
-		name: "HRA Exemption Calculator",
-		desc: "Calculate your exact HRA exemption and the tax you save",
-		category: "salary",
-		icon: Building2,
-		color: "text-[#8b5cf6]",
-		bg: "bg-[#8b5cf6]/10",
-		status: "coming-soon",
-		href: null,
-	},
-	{
 		id: "salary-growth",
 		name: "Salary Growth Calculator",
 		desc: "Project your earnings and wealth over 5, 10, or 20 years",
@@ -88,7 +63,7 @@ export const TOOLS: Tool[] = [
 		icon: TrendingUp,
 		color: "text-[#10b981]",
 		bg: "bg-[#10b981]/10",
-		status: "live",
+		status: "cooking",
 		href: "/tools/salary-growth",
 	},
 	{
@@ -99,7 +74,7 @@ export const TOOLS: Tool[] = [
 		icon: Briefcase,
 		color: "text-[#f97316]",
 		bg: "bg-[#f97316]/10",
-		status: "live",
+		status: "cooking",
 		href: "/tools/job-offer-comparator",
 	},
 	{
@@ -110,7 +85,7 @@ export const TOOLS: Tool[] = [
 		icon: Home,
 		color: "text-[#ec4899]",
 		bg: "bg-[#ec4899]/10",
-		status: "live",
+		status: "cooking",
 		href: "/tools/buy-vs-rent",
 	},
 	{
@@ -121,30 +96,19 @@ export const TOOLS: Tool[] = [
 		icon: Flame,
 		color: "text-[#ef4444]",
 		bg: "bg-[#ef4444]/10",
-		status: "live",
+		status: "cooking",
 		href: "/tools/fire",
 	},
 	{
 		id: "sip-calculator",
-		name: "SIP Future Planner",
+		name: "SIP Future Value Calculator",
 		desc: "See what your SIP can become, what gap remains, and how to close it",
 		category: "retirement",
 		icon: Target,
 		color: "text-[#0f766e]",
 		bg: "bg-[#0f766e]/10",
-		status: "live",
+		status: "cooking",
 		href: "/tools/sip-calculator",
-	},
-	{
-		id: "pf-maturity",
-		name: "PF Maturity Calculator",
-		desc: "Estimate your EPF corpus at retirement with projected returns",
-		category: "retirement",
-		icon: PiggyBank,
-		color: "text-[#f59e0b]",
-		bg: "bg-[#f59e0b]/10",
-		status: "coming-soon",
-		href: null,
 	},
 ];
 

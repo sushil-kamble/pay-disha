@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-	ArrowLeft,
 	ChevronDown,
 	Compass,
 	Info,
@@ -23,7 +22,7 @@ import {
 	YAxis,
 } from "recharts";
 
-import { SiteFooter, SiteNav } from "#/components/home";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -1419,70 +1418,51 @@ export function SipCalculatorPage() {
 	};
 
 	return (
-		<div
-			className="min-h-dvh bg-background text-foreground selection:bg-primary/20 selection:text-primary"
-			style={{
+		<ToolPageShell
+			title="SIP Future Planner"
+			description="This is not a generic SIP maturity widget. It shows what your goal will really cost, whether your current SIP gets there, and which levers buy you the most future."
+			rootClassName="selection:bg-primary/20 selection:text-primary"
+			rootStyle={{
 				backgroundImage:
 					"radial-gradient(circle at 0% 0%, rgba(13,148,136,0.09), transparent 32%), radial-gradient(circle at 100% 10%, rgba(217,119,6,0.10), transparent 28%), linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,1))",
 			}}
+			className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+			backLinkClassName="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+			descriptionClassName="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground"
 		>
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<Link
-							to="/"
-							className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-						>
-							<ArrowLeft className="size-4" />
-							Back to Tools
-						</Link>
-						<h1 className="display-title text-4xl font-bold leading-tight text-foreground md:text-5xl">
-							SIP Future Planner
-						</h1>
-						<p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground">
-							This is not a generic SIP maturity widget. It shows what your goal
-							will really cost, whether your current SIP gets there, and which
-							levers buy you the most future.
-						</p>
-					</div>
-				</div>
+			<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
+				<InputPanel
+					draft={draft}
+					onFieldChange={setField}
+					onGoalPresetChange={setGoalPreset}
+					advancedOpen={advancedOpen}
+					onAdvancedOpenChange={setAdvancedOpen}
+					onReset={() => {
+						setDraft(createDraft(DEFAULT_INPUTS));
+						setAdvancedOpen(false);
+						setTableOpen(false);
+						setAssumptionsOpen(false);
+						setLoadedFromStorage(false);
+					}}
+					loadedFromStorage={loadedFromStorage}
+				/>
 
-				<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
-					<InputPanel
-						draft={draft}
-						onFieldChange={setField}
-						onGoalPresetChange={setGoalPreset}
-						advancedOpen={advancedOpen}
-						onAdvancedOpenChange={setAdvancedOpen}
-						onReset={() => {
-							setDraft(createDraft(DEFAULT_INPUTS));
-							setAdvancedOpen(false);
-							setTableOpen(false);
-							setAssumptionsOpen(false);
-							setLoadedFromStorage(false);
-						}}
-						loadedFromStorage={loadedFromStorage}
+				<div className="min-w-0 space-y-6">
+					<HeroCard result={result} />
+					<InsightsGrid insights={result.insights} />
+					<ProjectionSection result={result} />
+					<LeverSection result={result} />
+					<YearByYearTable
+						points={result.projectionPoints}
+						open={tableOpen}
+						onOpenChange={setTableOpen}
 					/>
-
-					<div className="min-w-0 space-y-6">
-						<HeroCard result={result} />
-						<InsightsGrid insights={result.insights} />
-						<ProjectionSection result={result} />
-						<LeverSection result={result} />
-						<YearByYearTable
-							points={result.projectionPoints}
-							open={tableOpen}
-							onOpenChange={setTableOpen}
-						/>
-						<AssumptionsSection
-							open={assumptionsOpen}
-							onOpenChange={setAssumptionsOpen}
-						/>
-					</div>
+					<AssumptionsSection
+						open={assumptionsOpen}
+						onOpenChange={setAssumptionsOpen}
+					/>
 				</div>
-			</main>
-			<SiteFooter />
-		</div>
+			</div>
+		</ToolPageShell>
 	);
 }

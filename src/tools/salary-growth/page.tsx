@@ -1,5 +1,4 @@
 import {
-	ArrowLeft,
 	Copy,
 	Download,
 	Info,
@@ -21,7 +20,7 @@ import {
 	YAxis,
 } from "recharts";
 
-import { SiteFooter, SiteNav } from "#/components/home";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -612,134 +611,116 @@ export function SalaryGrowthPage() {
 	}
 
 	return (
-		<div className="min-h-dvh bg-background text-foreground">
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				<div className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-					<div>
-						<a
-							href="/"
-							className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+		<ToolPageShell
+			title="Salary Growth Calculator"
+			description="Model how your salary grows over time, compare switches vs staying put, and see the inflation-adjusted reality behind the headline number."
+			tag={
+				<Badge
+					variant="secondary"
+					className="rounded-full px-3 py-1 text-xs font-semibold"
+				>
+					{SALARY_GROWTH_FINANCIAL_CONTEXT}
+				</Badge>
+			}
+			className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
+		>
+			<Tabs
+				value={mode}
+				onValueChange={(value) => setMode(value as SalaryGrowthMode)}
+				className="space-y-6"
+			>
+				<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+					<TabsList className="h-auto rounded-2xl bg-muted/70 p-1.5">
+						<TabsTrigger
+							value="simple"
+							className="rounded-xl px-4 py-2 data-[state=active]:bg-background"
 						>
-							<ArrowLeft className="size-3.5" />
-							Back to Tools
-						</a>
-						<h1 className="display-title text-4xl font-bold leading-tight md:text-5xl">
-							Salary Growth Calculator
-						</h1>
-						<p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">
-							Model how your salary grows over time, compare switches vs staying
-							put, and see the inflation-adjusted reality behind the headline
-							number.
-						</p>
+							Simple mode
+						</TabsTrigger>
+						<TabsTrigger
+							value="advanced"
+							className="rounded-xl px-4 py-2 data-[state=active]:bg-background"
+						>
+							Advanced mode
+						</TabsTrigger>
+					</TabsList>
+
+					<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+						<Badge variant="outline" className="rounded-full">
+							<LineChartIcon className="mr-1 size-3" />
+							Interactive projection
+						</Badge>
+						<Badge variant="outline" className="rounded-full">
+							<Sparkles className="mr-1 size-3" />
+							Inflation-aware
+						</Badge>
 					</div>
-					<Badge
-						variant="secondary"
-						className="rounded-full px-3 py-1 text-xs font-semibold"
-					>
-						{SALARY_GROWTH_FINANCIAL_CONTEXT}
-					</Badge>
 				</div>
 
-				<Tabs
-					value={mode}
-					onValueChange={(value) => setMode(value as SalaryGrowthMode)}
-					className="space-y-6"
-				>
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<TabsList className="h-auto rounded-2xl bg-muted/70 p-1.5">
-							<TabsTrigger
-								value="simple"
-								className="rounded-xl px-4 py-2 data-[state=active]:bg-background"
-							>
-								Simple mode
-							</TabsTrigger>
-							<TabsTrigger
-								value="advanced"
-								className="rounded-xl px-4 py-2 data-[state=active]:bg-background"
-							>
-								Advanced mode
-							</TabsTrigger>
-						</TabsList>
-
-						<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-							<Badge variant="outline" className="rounded-full">
-								<LineChartIcon className="mr-1 size-3" />
-								Interactive projection
-							</Badge>
-							<Badge variant="outline" className="rounded-full">
-								<Sparkles className="mr-1 size-3" />
-								Inflation-aware
-							</Badge>
+				<TabsContent value="simple" className="mt-0">
+					<div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
+						<div className="lg:sticky lg:top-21">
+							<SimpleInputPanel
+								simpleSalary={simpleSalary}
+								setSimpleSalary={setSimpleSalary}
+								simpleBump={simpleBump}
+								setSimpleBump={setSimpleBump}
+								simpleYears={simpleYears}
+								setSimpleYears={setSimpleYears}
+								simpleInflation={simpleInflation}
+								setSimpleInflation={setSimpleInflation}
+								simpleInflationRate={simpleInflationRate}
+								setSimpleInflationRate={setSimpleInflationRate}
+								loadedFromStorage={simpleLoadedFromStorage}
+							/>
 						</div>
+						<SimpleResultsPanel
+							result={simpleResult}
+							onCopyReport={handleCopyReport}
+							onDownloadCsv={handleDownloadCsv}
+							actionMessage={actionMessage}
+						/>
 					</div>
+				</TabsContent>
 
-					<TabsContent value="simple" className="mt-0">
-						<div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
-							<div className="lg:sticky lg:top-21">
-								<SimpleInputPanel
-									simpleSalary={simpleSalary}
-									setSimpleSalary={setSimpleSalary}
-									simpleBump={simpleBump}
-									setSimpleBump={setSimpleBump}
-									simpleYears={simpleYears}
-									setSimpleYears={setSimpleYears}
-									simpleInflation={simpleInflation}
-									setSimpleInflation={setSimpleInflation}
-									simpleInflationRate={simpleInflationRate}
-									setSimpleInflationRate={setSimpleInflationRate}
-									loadedFromStorage={simpleLoadedFromStorage}
-								/>
-							</div>
-							<SimpleResultsPanel
-								result={simpleResult}
-								onCopyReport={handleCopyReport}
-								onDownloadCsv={handleDownloadCsv}
-								actionMessage={actionMessage}
+				<TabsContent value="advanced" className="mt-0">
+					<div className="grid gap-6 lg:grid-cols-[420px_1fr] lg:items-start">
+						<div className="lg:sticky lg:top-21">
+							<AdvancedInputPanel
+								historyRows={historyRows}
+								setHistoryRows={setHistoryRows}
+								overrideRows={overrideRows}
+								setOverrideRows={setOverrideRows}
+								annualIncrement={annualIncrement}
+								setAnnualIncrement={setAnnualIncrement}
+								switchEveryYears={switchEveryYears}
+								setSwitchEveryYears={setSwitchEveryYears}
+								switchHike={switchHike}
+								setSwitchHike={setSwitchHike}
+								advancedYears={advancedYears}
+								setAdvancedYears={setAdvancedYears}
+								advancedInflation={advancedInflation}
+								setAdvancedInflation={setAdvancedInflation}
+								advancedInflationRate={advancedInflationRate}
+								setAdvancedInflationRate={setAdvancedInflationRate}
+								assumptionsOpen={assumptionsOpen}
+								setAssumptionsOpen={setAssumptionsOpen}
+								overridesOpen={overridesOpen}
+								setOverridesOpen={setOverridesOpen}
+								validationErrors={advancedResult.validationErrors}
+								loadedFromStorage={advancedLoadedFromStorage}
 							/>
 						</div>
-					</TabsContent>
-
-					<TabsContent value="advanced" className="mt-0">
-						<div className="grid gap-6 lg:grid-cols-[420px_1fr] lg:items-start">
-							<div className="lg:sticky lg:top-21">
-								<AdvancedInputPanel
-									historyRows={historyRows}
-									setHistoryRows={setHistoryRows}
-									overrideRows={overrideRows}
-									setOverrideRows={setOverrideRows}
-									annualIncrement={annualIncrement}
-									setAnnualIncrement={setAnnualIncrement}
-									switchEveryYears={switchEveryYears}
-									setSwitchEveryYears={setSwitchEveryYears}
-									switchHike={switchHike}
-									setSwitchHike={setSwitchHike}
-									advancedYears={advancedYears}
-									setAdvancedYears={setAdvancedYears}
-									advancedInflation={advancedInflation}
-									setAdvancedInflation={setAdvancedInflation}
-									advancedInflationRate={advancedInflationRate}
-									setAdvancedInflationRate={setAdvancedInflationRate}
-									assumptionsOpen={assumptionsOpen}
-									setAssumptionsOpen={setAssumptionsOpen}
-									overridesOpen={overridesOpen}
-									setOverridesOpen={setOverridesOpen}
-									validationErrors={advancedResult.validationErrors}
-									loadedFromStorage={advancedLoadedFromStorage}
-								/>
-							</div>
-							<AdvancedResultsPanel
-								result={advancedResult}
-								onCopyReport={handleCopyReport}
-								onDownloadCsv={handleDownloadCsv}
-								actionMessage={actionMessage}
-							/>
-						</div>
-					</TabsContent>
-				</Tabs>
-			</main>
-			<SiteFooter />
-		</div>
+						<AdvancedResultsPanel
+							result={advancedResult}
+							onCopyReport={handleCopyReport}
+							onDownloadCsv={handleDownloadCsv}
+							actionMessage={actionMessage}
+						/>
+					</div>
+				</TabsContent>
+			</Tabs>
+		</ToolPageShell>
 	);
 }
 

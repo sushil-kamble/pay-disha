@@ -1,12 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import {
-	AlignLeft,
-	ArrowLeft,
-	BriefcaseBusiness,
-	Lightbulb,
-} from "lucide-react";
+import { AlignLeft, BriefcaseBusiness, Lightbulb } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SiteFooter, SiteNav } from "#/components/home";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -242,205 +236,186 @@ export function JobOfferComparatorPage() {
 	};
 
 	return (
-		<div className="min-h-dvh bg-background text-foreground">
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				<div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<Link
-							to="/"
-							className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-						>
-							<ArrowLeft className="h-3.5 w-3.5" />
-							Back to Tools
-						</Link>
-						<h1 className="display-title text-4xl font-bold leading-tight text-foreground md:text-5xl">
-							Job Offer Comparator
-						</h1>
-						<p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
-							Compare job offers the way your real life sees them: monthly
-							in-hand, 36-month value, risk, benefits, and fit.
-						</p>
-					</div>
-					<div className="flex items-center gap-2">
-						<Badge
-							variant="secondary"
-							className="rounded-full px-3 py-1 text-xs"
-						>
-							{SCENARIO_LABELS[config.scenario]} mode
-						</Badge>
-					</div>
+		<ToolPageShell
+			title="Job Offer Comparator"
+			description="Compare job offers the way your real life sees them: monthly in-hand, 36-month value, risk, benefits, and fit."
+			tag={
+				<div className="flex items-center gap-2">
+					<Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
+						{SCENARIO_LABELS[config.scenario]} mode
+					</Badge>
 				</div>
+			}
+			className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+			descriptionClassName="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground"
+		>
+			<div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start">
+				<div className="space-y-4">
+					<QuickCompareForm
+						offers={offers}
+						config={config}
+						advancedOpenByOfferId={advancedOpenByOfferId}
+						offerOpenByOfferId={offerOpenByOfferId}
+						onConfigChange={setConfigField}
+						onOfferFieldChange={updateOfferField}
+						onOfferBenefitChange={updateOfferBenefit}
+						onOfferQualitativeChange={updateOfferQualitative}
+						onOfferDuplicate={duplicateOffer}
+						onOfferDelete={deleteOffer}
+						onAdvancedOpenChange={(offerId, open) =>
+							setAdvancedOpenByOfferId((prev) => ({
+								...prev,
+								[offerId]: open,
+							}))
+						}
+						onOfferOpenChange={(offerId, open) =>
+							setOfferOpenByOfferId((prev) => ({
+								...prev,
+								[offerId]: open,
+							}))
+						}
+						onAddOffer={addOffer}
+						onReset={resetTool}
+						canAddOffer={offers.length < MAX_OFFERS}
+					/>
 
-				<div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start">
-					<div className="space-y-4">
-						<QuickCompareForm
-							offers={offers}
-							config={config}
-							advancedOpenByOfferId={advancedOpenByOfferId}
-							offerOpenByOfferId={offerOpenByOfferId}
-							onConfigChange={setConfigField}
-							onOfferFieldChange={updateOfferField}
-							onOfferBenefitChange={updateOfferBenefit}
-							onOfferQualitativeChange={updateOfferQualitative}
-							onOfferDuplicate={duplicateOffer}
-							onOfferDelete={deleteOffer}
-							onAdvancedOpenChange={(offerId, open) =>
-								setAdvancedOpenByOfferId((prev) => ({
-									...prev,
-									[offerId]: open,
-								}))
-							}
-							onOfferOpenChange={(offerId, open) =>
-								setOfferOpenByOfferId((prev) => ({
-									...prev,
-									[offerId]: open,
-								}))
-							}
-							onAddOffer={addOffer}
-							onReset={resetTool}
-							canAddOffer={offers.length < MAX_OFFERS}
-						/>
-
-						<div className="rounded-xl border border-border bg-card p-3">
-							<div className="flex items-center justify-between gap-2">
-								<div>
-									<p className="text-sm font-semibold text-foreground">
-										Include current role baseline
-									</p>
-									<p className="text-xs text-muted-foreground">
-										See effective hike versus staying put.
-									</p>
-								</div>
-								<Switch
-									checked={config.showCurrentBaseline}
-									onCheckedChange={(checked) =>
-										setConfigField("showCurrentBaseline", checked)
-									}
-								/>
+					<div className="rounded-xl border border-border bg-card p-3">
+						<div className="flex items-center justify-between gap-2">
+							<div>
+								<p className="text-sm font-semibold text-foreground">
+									Include current role baseline
+								</p>
+								<p className="text-xs text-muted-foreground">
+									See effective hike versus staying put.
+								</p>
 							</div>
-
-							{config.showCurrentBaseline && baselineOffer ? (
-								<div className="mt-3 grid gap-2 sm:grid-cols-2">
-									<div className="space-y-1.5">
-										<Label className="text-xs">Current fixed annual cash</Label>
-										<Input
-											type="number"
-											value={baselineOffer.fixedAnnualCash}
-											onChange={(event) =>
-												setBaselineOffer((prev) =>
-													prev
-														? {
-																...prev,
-																fixedAnnualCash: parseNumberInput(
-																	event.target.value,
-																),
-															}
-														: prev,
-												)
-											}
-										/>
-									</div>
-
-									<div className="space-y-1.5">
-										<Label className="text-xs">Current variable target</Label>
-										<Input
-											type="number"
-											value={baselineOffer.variableAnnualTarget}
-											onChange={(event) =>
-												setBaselineOffer((prev) =>
-													prev
-														? {
-																...prev,
-																variableAnnualTarget: parseNumberInput(
-																	event.target.value,
-																),
-															}
-														: prev,
-												)
-											}
-										/>
-									</div>
-								</div>
-							) : null}
+							<Switch
+								checked={config.showCurrentBaseline}
+								onCheckedChange={(checked) =>
+									setConfigField("showCurrentBaseline", checked)
+								}
+							/>
 						</div>
-					</div>
 
-					<div className="min-w-0 space-y-4">
-						{result ? (
-							<>
-								<VerdictHeader result={result} />
-								<ResultsMetricCards offers={result.offers} />
-								<ComparisonChart result={result} />
-								<FitSummary
-									offers={result.offers}
-									includeFit={config.includeQualitativeFit}
-								/>
-								<div className="rounded-2xl border border-border bg-card p-4">
-									<div className="mb-3 flex items-center gap-2">
-										<AlignLeft className="h-4 w-4 text-primary" />
-										<p className="text-sm font-semibold text-foreground">
-											Why this ranking
-										</p>
-									</div>
-									<ul className="space-y-1.5 text-sm text-muted-foreground">
-										{result.narrative.map((line) => (
-											<li key={line} className="leading-relaxed">
-												• {line}
-											</li>
-										))}
-									</ul>
+						{config.showCurrentBaseline && baselineOffer ? (
+							<div className="mt-3 grid gap-2 sm:grid-cols-2">
+								<div className="space-y-1.5">
+									<Label className="text-xs">Current fixed annual cash</Label>
+									<Input
+										type="number"
+										value={baselineOffer.fixedAnnualCash}
+										onChange={(event) =>
+											setBaselineOffer((prev) =>
+												prev
+													? {
+															...prev,
+															fixedAnnualCash: parseNumberInput(
+																event.target.value,
+															),
+														}
+													: prev,
+											)
+										}
+									/>
 								</div>
-								<div className="rounded-2xl border border-border bg-card p-4">
-									<div className="mb-3 flex items-center gap-2">
-										<Lightbulb className="h-4 w-4 text-primary" />
-										<p className="text-sm font-semibold text-foreground">
-											Offer insights
-										</p>
-									</div>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										{result.offers.map((offer) => (
-											<div
-												key={offer.offer.id}
-												className="rounded-xl border border-border bg-background p-3"
-											>
-												<div className="mb-2 flex items-center justify-between gap-2">
-													<p className="text-sm font-semibold text-foreground">
-														{offer.offer.companyName || "Unnamed offer"}
-													</p>
-													<Badge variant="outline" className="text-[10px]">
-														{formatCompactCurrency(offer.monthlyTakeHome)}/mo
-													</Badge>
-												</div>
-												<ul className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
-													{offer.insights.map((insight) => (
-														<li key={insight}>• {insight}</li>
-													))}
-												</ul>
-											</div>
-										))}
-									</div>
+
+								<div className="space-y-1.5">
+									<Label className="text-xs">Current variable target</Label>
+									<Input
+										type="number"
+										value={baselineOffer.variableAnnualTarget}
+										onChange={(event) =>
+											setBaselineOffer((prev) =>
+												prev
+													? {
+															...prev,
+															variableAnnualTarget: parseNumberInput(
+																event.target.value,
+															),
+														}
+													: prev,
+											)
+										}
+									/>
 								</div>
-								<OfferBreakdownTable offers={result.offers} />
-							</>
-						) : (
-							<div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-								<div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
-									<BriefcaseBusiness className="h-6 w-6" />
-								</div>
-								<p className="text-base font-semibold text-foreground">
-									Add at least 2 offers to compare.
-								</p>
-								<p className="max-w-md text-sm text-muted-foreground">
-									Enter fixed cash, variable pay, joining bonus, and equity to
-									get a decision-ready view across cash now and long-term value.
-								</p>
 							</div>
-						)}
+						) : null}
 					</div>
 				</div>
-			</main>
-			<SiteFooter />
-		</div>
+
+				<div className="min-w-0 space-y-4">
+					{result ? (
+						<>
+							<VerdictHeader result={result} />
+							<ResultsMetricCards offers={result.offers} />
+							<ComparisonChart result={result} />
+							<FitSummary
+								offers={result.offers}
+								includeFit={config.includeQualitativeFit}
+							/>
+							<div className="rounded-2xl border border-border bg-card p-4">
+								<div className="mb-3 flex items-center gap-2">
+									<AlignLeft className="h-4 w-4 text-primary" />
+									<p className="text-sm font-semibold text-foreground">
+										Why this ranking
+									</p>
+								</div>
+								<ul className="space-y-1.5 text-sm text-muted-foreground">
+									{result.narrative.map((line) => (
+										<li key={line} className="leading-relaxed">
+											• {line}
+										</li>
+									))}
+								</ul>
+							</div>
+							<div className="rounded-2xl border border-border bg-card p-4">
+								<div className="mb-3 flex items-center gap-2">
+									<Lightbulb className="h-4 w-4 text-primary" />
+									<p className="text-sm font-semibold text-foreground">
+										Offer insights
+									</p>
+								</div>
+								<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+									{result.offers.map((offer) => (
+										<div
+											key={offer.offer.id}
+											className="rounded-xl border border-border bg-background p-3"
+										>
+											<div className="mb-2 flex items-center justify-between gap-2">
+												<p className="text-sm font-semibold text-foreground">
+													{offer.offer.companyName || "Unnamed offer"}
+												</p>
+												<Badge variant="outline" className="text-[10px]">
+													{formatCompactCurrency(offer.monthlyTakeHome)}/mo
+												</Badge>
+											</div>
+											<ul className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+												{offer.insights.map((insight) => (
+													<li key={insight}>• {insight}</li>
+												))}
+											</ul>
+										</div>
+									))}
+								</div>
+							</div>
+							<OfferBreakdownTable offers={result.offers} />
+						</>
+					) : (
+						<div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+							<div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+								<BriefcaseBusiness className="h-6 w-6" />
+							</div>
+							<p className="text-base font-semibold text-foreground">
+								Add at least 2 offers to compare.
+							</p>
+							<p className="max-w-md text-sm text-muted-foreground">
+								Enter fixed cash, variable pay, joining bonus, and equity to get
+								a decision-ready view across cash now and long-term value.
+							</p>
+						</div>
+					)}
+				</div>
+			</div>
+		</ToolPageShell>
 	);
 }

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Flame } from "lucide-react";
 import { useState } from "react";
 
 import { CATEGORIES, type Category, TOOLS, type Tool } from "./data";
@@ -9,7 +9,9 @@ export function ToolsSection() {
 
 	const filtered =
 		active === "all" ? TOOLS : TOOLS.filter((tool) => tool.category === active);
-	const liveCount = filtered.filter((tool) => tool.status === "live").length;
+	const cookingCount = filtered.filter(
+		(tool) => tool.status === "cooking",
+	).length;
 
 	return (
 		<section id="tools" className="py-24">
@@ -24,7 +26,7 @@ export function ToolsSection() {
 					<p className="text-sm text-muted-foreground">
 						{filtered.length} tool{filtered.length !== 1 ? "s" : ""} &middot;{" "}
 						<span className="font-medium text-[#10b981]">
-							{liveCount} live now
+							{cookingCount} cooking
 						</span>
 					</p>
 				</div>
@@ -65,13 +67,17 @@ function ToolCard({ tool }: { tool: Tool }) {
 	const inner = (
 		<div
 			className={`feature-card group relative flex h-full flex-col rounded-2xl border border-border p-5 ${
-				isLive ? "cursor-pointer" : "cursor-default opacity-60"
+				isLive ? "cursor-pointer" : "cursor-default"
 			}`}
 		>
-			{!isLive && (
-				<span className="absolute top-4 right-4 flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-					<Lock className="h-2.5 w-2.5" />
-					Soon
+			{isLive ? (
+				<span className="tool-live-badge absolute top-4 right-4 flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+					<Flame className="tool-live-icon h-2.5 w-2.5" />
+					Live
+				</span>
+			) : (
+				<span className="tool-cooking-badge absolute top-4 right-4 flex items-center gap-1 rounded-full border border-amber-400/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+					<span className="tool-cooking-text">Cooking</span>
 				</span>
 			)}
 
@@ -100,7 +106,7 @@ function ToolCard({ tool }: { tool: Tool }) {
 						<ArrowRight className="h-3.5 w-3.5 text-primary transition-transform duration-180 group-hover:translate-x-0.5" />
 					</>
 				) : (
-					<span className="text-muted-foreground">Coming soon</span>
+					<span className="text-muted-foreground">Not available yet</span>
 				)}
 			</div>
 		</div>

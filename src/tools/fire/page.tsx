@@ -1,6 +1,4 @@
-import { Link } from "@tanstack/react-router";
 import {
-	ArrowLeft,
 	ChevronDown,
 	Flame,
 	HeartPulse,
@@ -23,7 +21,7 @@ import {
 	YAxis,
 } from "recharts";
 
-import { SiteFooter, SiteNav } from "#/components/home";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -1365,58 +1363,43 @@ export function FirePage() {
 	};
 
 	return (
-		<div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 selection:text-primary">
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<Link
-							to="/"
-							className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-						>
-							<ArrowLeft className="size-4" />
-							Back to Tools
-						</Link>
-						<h1 className="display-title text-4xl font-bold leading-tight text-foreground md:text-5xl">
-							FIRE Calculator
-						</h1>
-						<p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-							Determine exactly when work becomes optional. Designed for the
-							Indian economic context.
-						</p>
-					</div>
-				</div>
-				<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
-					<InputPanel
-						draft={draft}
-						onFieldChange={setField}
-						accuracyOpen={accuracyOpen}
-						onAccuracyOpenChange={setAccuracyOpen}
-						fineTuneOpen={fineTuneOpen}
-						onFineTuneOpenChange={setFineTuneOpen}
-						onReset={() => {
-							setDraft(createDraft(FIRE_DEFAULTS));
-							setAccuracyOpen(false);
-							setFineTuneOpen(false);
-							setTableOpen(false);
-							setLoadedFromStorage(false);
-						}}
-						loadedFromStorage={loadedFromStorage}
-					/>
+		<ToolPageShell
+			title="FIRE Calculator"
+			description="Determine exactly when work becomes optional. Designed for the Indian economic context."
+			rootClassName="selection:bg-primary/20 selection:text-primary"
+			className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+			backLinkClassName="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+			descriptionClassName="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground"
+		>
+			<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
+				<InputPanel
+					draft={draft}
+					onFieldChange={setField}
+					accuracyOpen={accuracyOpen}
+					onAccuracyOpenChange={setAccuracyOpen}
+					fineTuneOpen={fineTuneOpen}
+					onFineTuneOpenChange={setFineTuneOpen}
+					onReset={() => {
+						setDraft(createDraft(FIRE_DEFAULTS));
+						setAccuracyOpen(false);
+						setFineTuneOpen(false);
+						setTableOpen(false);
+						setLoadedFromStorage(false);
+					}}
+					loadedFromStorage={loadedFromStorage}
+				/>
 
-					<div className="space-y-6 min-w-0">
-						<HeroCard result={result} />
-						<ProjectionSection result={result} />
-						<StrategySection result={result} />
-						<YearByYearTable
-							points={result.projectionPoints}
-							open={tableOpen}
-							onOpenChange={setTableOpen}
-						/>
-					</div>
+				<div className="space-y-6 min-w-0">
+					<HeroCard result={result} />
+					<ProjectionSection result={result} />
+					<StrategySection result={result} />
+					<YearByYearTable
+						points={result.projectionPoints}
+						open={tableOpen}
+						onOpenChange={setTableOpen}
+					/>
 				</div>
-			</main>
-			<SiteFooter />
-		</div>
+			</div>
+		</ToolPageShell>
 	);
 }

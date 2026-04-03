@@ -20,7 +20,7 @@
   --line:           rgba(15, 23, 42, 0.10);
   --inset-glint:    rgba(255, 255, 255, 0.82);
   --kicker:         rgba(79, 70, 229, 0.88);
-  --header-bg:      rgba(248, 250, 252, 0.84);
+  --header-bg:      rgba(248, 250, 252, 0.42);
   --chip-bg:        rgba(255, 255, 255, 0.80);
   --chip-line:      rgba(79, 70, 229, 0.16);
   --link-bg-hover:  rgba(255, 255, 255, 0.90);
@@ -29,7 +29,7 @@
 
   /* ── Shadcn / Tailwind semantic tokens (Indigo Trust light) ──
      Mapped via @theme inline below so both systems share values. */
-  --background:             oklch(0.985 0.002 247);
+  --background:             oklch(1 0 0);
   --foreground:             oklch(0.16 0.025 250);
   --card:                   oklch(1 0 0);
   --card-foreground:        oklch(0.16 0.025 250);
@@ -81,7 +81,7 @@
   --line:           rgba(165, 180, 252, 0.16);
   --inset-glint:    rgba(165, 180, 252, 0.10);
   --kicker:         #c7d2fe;
-  --header-bg:      rgba(10, 14, 32, 0.80);
+  --header-bg:      rgba(10, 14, 32, 0.42);
   --chip-bg:        rgba(17, 24, 50, 0.90);
   --chip-line:      rgba(165, 180, 252, 0.22);
   --link-bg-hover:  rgba(26, 34, 65, 0.80);
@@ -297,6 +297,66 @@ a {
   animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes live-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.06);
+  }
+}
+
+@keyframes live-flicker {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes cooking-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes cooking-text-pulse {
+  0%,
+  100% {
+    opacity: 0.78;
+    letter-spacing: 0.01em;
+  }
+  50% {
+    opacity: 1;
+    letter-spacing: 0.03em;
+  }
+}
+
+.tool-live-badge {
+  animation: live-glow 2.2s ease-in-out infinite;
+}
+
+.tool-live-icon {
+  animation: live-flicker 1.5s ease-in-out infinite;
+}
+
+.tool-cooking-badge {
+  animation: cooking-breathe 2.1s ease-in-out infinite;
+}
+
+.tool-cooking-text {
+  animation: cooking-text-pulse 1.7s ease-in-out infinite;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -311,6 +371,55 @@ a {
 .site-footer {
   border-top: 1px solid var(--line);
   background: color-mix(in oklab, var(--header-bg) 84%, transparent 16%);
+}
+
+/* ── Hero aurora gradient ─────────────────────────────────
+   Applied directly on the <section> background so it
+   renders on the surface, not as a buried z-index layer.   */
+.hero-bg {
+  background:
+    radial-gradient(ellipse 90% 110% at 0% 0%,   rgba(79, 70, 229, 0.72) 0%, transparent 58%),
+    radial-gradient(ellipse 72% 90% at 100% 0%,   rgba(6, 182, 212, 0.60) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 0%,    rgba(79, 70, 229, 0.30) 0%, transparent 65%),
+    var(--background);
+}
+
+.dark .hero-bg {
+  background:
+    radial-gradient(ellipse 90% 110% at 0% 0%,   rgba(129, 140, 248, 0.60) 0%, transparent 58%),
+    radial-gradient(ellipse 72% 90% at 100% 0%,   rgba(103, 232, 249, 0.48) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 0%,    rgba(129, 140, 248, 0.25) 0%, transparent 65%),
+    var(--background);
+}
+
+/* ── Animated gradient for hero accent word ───────────── */
+@keyframes gradient-flow {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+.gradient-flow-text {
+  background: linear-gradient(
+    90deg,
+    var(--indigo)      0%,
+    var(--cyan)        45%,
+    var(--indigo-deep) 75%,
+    var(--indigo)      100%
+  );
+  background-size: 280% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradient-flow 6s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-flow-text {
+    animation: none;
+    background-size: 100% auto;
+  }
 }
 
 @layer base {

@@ -1,6 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-	ArrowLeft,
 	Calculator,
 	ChevronDown,
 	Info,
@@ -8,6 +7,7 @@ import {
 	TrendingUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ToolPageShell } from "#/components/common";
 import { Badge } from "#/components/ui/badge";
 import {
 	Collapsible,
@@ -170,91 +170,47 @@ function InHandSalaryPage() {
 	const showWarning = ctcLakhs > CTC_WARNING_THRESHOLD_LAKHS;
 
 	return (
-		<div className="min-h-dvh bg-background text-foreground">
-			<SiteNav />
-			<main className="page-wrap pb-20 pt-8">
-				{/* Page Hero */}
-				<div className="rise-in mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<Link
-							to="/"
-							className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-						>
-							<ArrowLeft className="h-3.5 w-3.5" />
-							Back to Tools
-						</Link>
-						<h1 className="display-title text-4xl font-bold leading-tight text-foreground md:text-5xl">
-							In-Hand Salary Calculator
-						</h1>
-						<p className="mt-2 max-w-xl text-base leading-relaxed text-muted-foreground">
-							Calculate your exact take-home salary from your CTC — instantly,
-							privately.
-						</p>
-					</div>
-					<div className="shrink-0">
-						<Badge
-							variant="secondary"
-							className="rounded-full px-3 py-1 text-xs font-semibold"
-						>
-							{FINANCIAL_YEAR}
-						</Badge>
-					</div>
-				</div>
-
-				{/* Two-column layout */}
-				<div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
-					{/* Left: Input Panel */}
-					<div className="lg:sticky lg:top-20">
-						<InputPanel
-							ctcInput={ctcInput}
-							setCtcInput={setCtcInput}
-							expectedExemptionsInput={expectedExemptionsInput}
-							setExpectedExemptionsInput={setExpectedExemptionsInput}
-							pfMonthly={pfMonthly}
-							pfMonthlyInput={pfMonthlyInput}
-							setPfMonthlyInput={setPfMonthlyInput}
-							regime={regime}
-							setRegime={setRegime}
-							showWarning={showWarning}
-						/>
-					</div>
-
-					{/* Right: Results Panel */}
-					<ResultsPanel
-						result={result}
+		<ToolPageShell
+			title="In-hand Salary Calculator"
+			description="Calculate your exact take-home salary from your CTC — instantly, privately."
+			tag={
+				<Badge
+					variant="secondary"
+					className="rounded-full px-3 py-1 text-xs font-semibold"
+				>
+					{FINANCIAL_YEAR}
+				</Badge>
+			}
+			className="rise-in mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+			descriptionClassName="mt-2 max-w-xl text-base leading-relaxed text-muted-foreground"
+		>
+			{/* Two-column layout */}
+			<div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
+				{/* Left: Input Panel */}
+				<div className="lg:sticky lg:top-20">
+					<InputPanel
+						ctcInput={ctcInput}
+						setCtcInput={setCtcInput}
+						expectedExemptionsInput={expectedExemptionsInput}
+						setExpectedExemptionsInput={setExpectedExemptionsInput}
+						pfMonthly={pfMonthly}
+						pfMonthlyInput={pfMonthlyInput}
+						setPfMonthlyInput={setPfMonthlyInput}
 						regime={regime}
-						oldResult={oldResult}
-						newResult={newResult}
+						setRegime={setRegime}
+						showWarning={showWarning}
 					/>
 				</div>
-			</main>
-			<SiteFooter />
-		</div>
-	);
-}
 
-// ─── Nav ──────────────────────────────────────────────────────────────────────
-
-function SiteNav() {
-	return (
-		<header
-			className="sticky top-0 z-50 border-b border-border/60 backdrop-blur-md"
-			style={{ background: "var(--header-bg)" }}
-		>
-			<nav className="page-wrap flex items-center justify-between py-3.5">
-				<Link to="/" className="flex items-center gap-2">
-					<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
-						₹
-					</span>
-					<span className="text-lg font-bold tracking-tight text-foreground">
-						Pay<span className="text-primary">Disha</span>
-					</span>
-				</Link>
-				<Badge variant="outline" className="text-xs font-medium">
-					All calculations run in your browser
-				</Badge>
-			</nav>
-		</header>
+				{/* Right: Results Panel */}
+				<ResultsPanel
+					result={result}
+					regime={regime}
+					oldResult={oldResult}
+					newResult={newResult}
+				/>
+			</div>
+		</ToolPageShell>
 	);
 }
 
@@ -1027,24 +983,5 @@ function RegimeComparison({
 				</p>
 			)}
 		</div>
-	);
-}
-
-// ─── Footer ───────────────────────────────────────────────────────────────────
-
-function SiteFooter() {
-	return (
-		<footer className="site-footer">
-			<div className="page-wrap py-8">
-				<div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-					<p className="text-xs text-muted-foreground">
-						© 2025 PayDisha. Made with ♥ for salaried India.
-					</p>
-					<p className="text-xs text-muted-foreground">
-						Not financial advice. Numbers are estimates — verify with a CA.
-					</p>
-				</div>
-			</div>
-		</footer>
 	);
 }
