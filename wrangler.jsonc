@@ -1,9 +1,17 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "pay-disha",
+	"name": "payday",
 	"compatibility_date": "2026-04-03",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "@tanstack/react-start/server-entry",
+	"workers_dev": false,
+	"routes": [
+		{
+			"pattern": "payday.1cc.in",
+			"zone_name": "1cc.in",
+			"custom_domain": true
+		}
+	],
 	"observability": {
 		"enabled": true
 	}

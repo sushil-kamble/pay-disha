@@ -1,5 +1,5 @@
 # AGENTS.md
-Agent operating guide for `pay-disha`.
+Agent operating guide for `payday`.
 
 ## 1) Project Snapshot
 - Stack: TanStack Start + TanStack Router (file-based) + React 19 + Tailwind CSS v4 + shadcn/ui + Biome + Vitest.

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Agent operating guide for `pay-disha`.
+Agent operating guide for `payday`.
 
 ## 1) Project Snapshot
 
