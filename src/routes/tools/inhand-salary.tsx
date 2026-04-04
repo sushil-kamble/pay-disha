@@ -784,11 +784,11 @@ function BreakdownSections({
 				<BreakdownTable
 					rows={[
 						{
-							label: "Employee PF (12% of basic)",
+							label: "Employee PF",
 							value: `₹${formatIndian(result.pfEmployeeYearly)}/yr`,
 						},
 						{
-							label: "Employer PF (12% of basic)",
+							label: "Employer PF",
 							value: `₹${formatIndian(result.pfEmployerYearly)}/yr`,
 							dim: true,
 						},
