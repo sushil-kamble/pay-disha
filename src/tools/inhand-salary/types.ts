@@ -16,6 +16,8 @@ export interface SlabResult {
 export interface CalculationResult {
 	grossIncome: number;
 	standardDeduction: number;
+	professionalTaxDeduction: number;
+	employeePfTaxDeduction: number;
 	taxableIncomeBeforeExemptions: number;
 	exemptionsApplied: number;
 	taxableIncome: number;

@@ -327,12 +327,26 @@ function InputPanel({
 
 			{/* Expected Exemptions Input */}
 			<div className="mb-4">
-				<Label
-					htmlFor="expected-exemptions-input"
-					className="mb-2 block text-sm font-semibold text-foreground"
-				>
-					Expected Exemptions (Annual)
-				</Label>
+				<div className="mb-2 flex items-center">
+					<Label
+						htmlFor="expected-exemptions-input"
+						className="text-sm font-semibold text-foreground"
+					>
+						<span className="flex items-center">
+							Expected Exemptions (Annual)
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Info className="ml-1 inline h-3.5 w-3.5 cursor-pointer text-muted-foreground hover:text-foreground" />
+								</TooltipTrigger>
+								<TooltipContent className="max-w-64 text-pretty">
+									80C / 80D / etc. Applied only in Old Regime (excluding
+									employee PF and professional tax deductions already handled
+									above).
+								</TooltipContent>
+							</Tooltip>
+						</span>
+					</Label>
+				</div>
 				<div className="relative">
 					<Input
 						id="expected-exemptions-input"
@@ -348,9 +362,6 @@ function InputPanel({
 						/yr
 					</span>
 				</div>
-				<p className="mt-1.5 text-xs text-muted-foreground">
-					80C / 80D / etc. Applied only in Old Regime.
-				</p>
 			</div>
 
 			{/* PF Slider */}
@@ -626,6 +637,24 @@ function BreakdownSections({
 							value: `− ₹${formatIndian(result.standardDeduction)}`,
 							dim: true,
 						},
+						...(result.professionalTaxDeduction > 0
+							? [
+									{
+										label: "Professional Tax Deduction (Sec 16)",
+										value: `− ₹${formatIndian(result.professionalTaxDeduction)}`,
+										dim: true,
+									},
+								]
+							: []),
+						...(result.employeePfTaxDeduction > 0
+							? [
+									{
+										label: "Employee PF Tax Deduction",
+										value: `− ₹${formatIndian(result.employeePfTaxDeduction)}`,
+										dim: true,
+									},
+								]
+							: []),
 						...(regime === "old"
 							? [
 									{

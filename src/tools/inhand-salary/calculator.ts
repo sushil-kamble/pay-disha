@@ -154,13 +154,24 @@ export function calculate(
 	if (!ctcLakhs || ctcLakhs <= 0) return null;
 
 	const grossIncome = ctcLakhs * 100000;
+	const pfEmployeeYearly = pfMonthly * 12;
+	const pfEmployerYearly = pfMonthly * 12;
+	const totalPF = pfEmployeeYearly + pfEmployerYearly;
+	const professionalTax = PROFESSIONAL_TAX_YEARLY;
+
 	const standardDeduction =
 		regime === "new"
 			? NEW_REGIME_STANDARD_DEDUCTION
 			: OLD_REGIME_STANDARD_DEDUCTION;
+	const professionalTaxDeduction = regime === "old" ? professionalTax : 0;
+	const employeePfTaxDeduction =
+		regime === "old" ? Math.max(0, pfEmployeeYearly) : 0;
 	const taxableIncomeBeforeExemptions = Math.max(
 		0,
-		grossIncome - standardDeduction,
+		grossIncome -
+			standardDeduction -
+			professionalTaxDeduction -
+			employeePfTaxDeduction,
 	);
 	const exemptionsApplied =
 		regime === "old"
@@ -198,12 +209,7 @@ export function calculate(
 	const taxBeforeCess = taxAfterRebate + surcharge;
 
 	const educationCess = taxBeforeCess * EDUCATION_CESS_RATE;
-	const professionalTax = PROFESSIONAL_TAX_YEARLY;
 	const totalTax = taxBeforeCess + educationCess + professionalTax;
-
-	const pfEmployeeYearly = pfMonthly * 12;
-	const pfEmployerYearly = pfMonthly * 12;
-	const totalPF = pfEmployeeYearly + pfEmployerYearly;
 
 	const inHandYearly = grossIncome - totalTax - totalPF;
 	const inHandMonthly = inHandYearly / 12;
@@ -211,6 +217,8 @@ export function calculate(
 	return {
 		grossIncome,
 		standardDeduction,
+		professionalTaxDeduction,
+		employeePfTaxDeduction,
 		taxableIncomeBeforeExemptions,
 		exemptionsApplied,
 		taxableIncome,

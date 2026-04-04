@@ -26,6 +26,8 @@ function buildTaxResult(
 	return {
 		grossIncome,
 		standardDeduction: 0,
+		professionalTaxDeduction: 0,
+		employeePfTaxDeduction: 0,
 		taxableIncomeBeforeExemptions: grossIncome,
 		exemptionsApplied: 0,
 		taxableIncome: grossIncome,
