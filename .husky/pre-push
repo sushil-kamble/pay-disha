@@ -1,0 +1,3 @@
+echo "Running pre-push checks. Use 'git push --no-verify' only when you intentionally want to bypass them."
+pnpm check
+pnpm build

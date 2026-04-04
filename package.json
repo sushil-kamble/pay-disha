@@ -5,17 +5,18 @@
   "imports": {
     "#/*": "./src/*"
   },
-	"scripts": {
-		"dev": "vite dev --port 3000",
-		"build": "vite build",
-		"preview": "vite preview",
-		"deploy": "pnpm build && wrangler deploy",
-		"cf-typegen": "wrangler types",
-		"test": "vitest run",
-		"typecheck": "tsc --noEmit --project tsconfig.json",
-		"format": "biome format",
-		"lint": "biome lint",
-    "check": "biome check && pnpm typecheck"
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "format": "biome format",
+    "lint": "biome lint",
+    "check": "biome check && pnpm typecheck",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -47,6 +48,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
