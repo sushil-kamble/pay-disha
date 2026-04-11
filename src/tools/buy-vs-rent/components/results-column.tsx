@@ -744,8 +744,7 @@ function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 								View in today's money
 							</p>
 							<p className="text-xs text-muted-foreground">
-								Income grows at {result.inputs.salaryGrowthPct}% while this view
-								deflates by {inflationRatePct}% inflation.
+								Adjusts for inflation.
 							</p>
 						</div>
 						<Switch
