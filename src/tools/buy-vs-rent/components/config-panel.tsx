@@ -150,7 +150,7 @@ export function ConfigPanelLoadingFallback() {
 		<div
 			className={cn(
 				surfaceClassName,
-				"p-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
+				"p-4 sm:p-5 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
 			)}
 		>
 			<div className="space-y-4">
@@ -212,7 +212,7 @@ export function ConfigPanel({
 		<div
 			className={cn(
 				surfaceClassName,
-				"p-6 pb-12 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
+				"p-4 pb-8 sm:p-5 sm:pb-10 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
 			)}
 		>
 			<div className="mb-4 flex items-center justify-between gap-3 border-b border-border/80 pb-4">

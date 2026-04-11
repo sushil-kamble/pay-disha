@@ -136,8 +136,8 @@ export function BuyVsRentPage() {
 			}
 			className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
 		>
-			<div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
-				<div className="self-start lg:sticky lg:top-20">
+			<div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:gap-8">
+				<div className="min-w-0 self-start lg:sticky lg:top-20">
 					{!storageReady ? (
 						<ConfigPanelLoadingFallback />
 					) : (

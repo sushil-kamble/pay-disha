@@ -6,7 +6,7 @@ import {
 	PiggyBank,
 	TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Area,
 	CartesianGrid,
@@ -138,40 +138,70 @@ function scaleToToday(value: number, inflationRatePct: number, years: number) {
 	return value / (1 + inflationRatePct / 100) ** years;
 }
 
-function buildXAxisTicks(labels: string[], maxTicks = 10) {
-	if (labels.length <= maxTicks) return labels;
+function computeYearTicks(
+	minYear: number,
+	maxYear: number,
+	maxCount = 6,
+): number[] {
+	const span = maxYear - minYear;
+	if (span <= 0) return [minYear];
 
-	const lastIndex = labels.length - 1;
-	const step = Math.max(1, Math.floor(lastIndex / (maxTicks - 1)));
-	const ticks = [labels[0]];
-
-	for (
-		let index = step;
-		index < lastIndex && ticks.length < maxTicks - 1;
-		index += step
-	) {
-		ticks.push(labels[index]);
+	const niceSteps = [1, 2, 5, 10, 20, 25, 50];
+	let step = niceSteps[niceSteps.length - 1];
+	for (const candidate of niceSteps) {
+		if (Math.floor(span / candidate) + 1 <= maxCount) {
+			step = candidate;
+			break;
+		}
 	}
 
-	ticks.push(labels[lastIndex]);
+	const firstTick = Math.ceil(minYear / step) * step;
+	const ticks: number[] = [];
+
+	if (firstTick > minYear) ticks.push(minYear);
+	for (let value = firstTick; value <= maxYear; value += step) {
+		if (ticks[ticks.length - 1] !== value) ticks.push(value);
+	}
+	if (ticks[ticks.length - 1] !== maxYear) ticks.push(maxYear);
+
 	return ticks;
+}
+
+function formatYearTick(value: number, short: boolean) {
+	if (value <= 0) return short ? "0" : "Now";
+	return short ? String(value) : `Year ${value}`;
+}
+
+function useIsSmUp() {
+	const [isSmUp, setIsSmUp] = useState(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined" || !window.matchMedia) return;
+		const mql = window.matchMedia("(min-width: 640px)");
+		const update = () => setIsSmUp(mql.matches);
+		update();
+		mql.addEventListener("change", update);
+		return () => mql.removeEventListener("change", update);
+	}, []);
+
+	return isSmUp;
 }
 
 export function ResultsColumnLoadingFallback() {
 	return (
 		<div className={resultsColumnClassName}>
-			<div className="h-64 rounded-2xl bg-muted/60" />
+			<div className="h-56 rounded-2xl bg-muted/60 sm:h-64" />
 			<div className={resultCardGridClassName}>
-				<div className="h-36 rounded-2xl bg-muted/55" />
-				<div className="h-36 rounded-2xl bg-muted/55" />
-				<div className="h-36 rounded-2xl bg-muted/55" />
-				<div className="h-36 rounded-2xl bg-muted/55" />
+				<div className="h-32 rounded-2xl bg-muted/55 sm:h-36" />
+				<div className="h-32 rounded-2xl bg-muted/55 sm:h-36" />
+				<div className="h-32 rounded-2xl bg-muted/55 sm:h-36" />
+				<div className="h-32 rounded-2xl bg-muted/55 sm:h-36" />
 			</div>
-			<div className="h-96 rounded-3xl bg-muted/50" />
-			<div className="h-80 rounded-3xl bg-muted/50" />
+			<div className="h-80 rounded-3xl bg-muted/50 sm:h-96" />
+			<div className="h-64 rounded-3xl bg-muted/50 sm:h-80" />
 			<div className="h-52 rounded-3xl bg-muted/45" />
 			<div className="h-64 rounded-3xl bg-muted/45" />
-			<div className="h-96 rounded-3xl bg-muted/45" />
+			<div className="h-80 rounded-3xl bg-muted/45 sm:h-96" />
 		</div>
 	);
 }
@@ -205,22 +235,27 @@ export function ResultsColumn({
 }
 
 const resultToggleCardClassName =
-	"w-full sm:max-w-[15.5rem] rounded-2xl border border-border bg-background/70 px-4 py-3";
+	"w-full min-w-0 rounded-2xl border border-border bg-background/70 px-3 py-3 sm:px-4 md:w-[21rem] md:flex-none";
 
 function VerdictHero({ result }: { result: BuyVsRentResult }) {
 	const theme = getVerdictTheme(result.summary.verdict);
 
 	return (
-		<div className={cn("overflow-hidden rounded-2xl p-5", theme.card)}>
+		<div
+			className={cn(
+				"min-w-0 overflow-hidden rounded-2xl p-4 sm:p-5",
+				theme.card,
+			)}
+		>
 			<div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-				<div>
+				<div className="min-w-0">
 					<p className={cn("mb-1 text-xs font-medium", theme.kicker)}>
 						Buy vs Rent
 					</p>
-					<h2 className="text-4xl font-black leading-none md:text-5xl">
+					<h2 className="text-3xl font-black leading-none sm:text-4xl md:text-5xl">
 						{BUY_VS_RENT_VERDICT_LABELS[result.summary.verdict]}
 					</h2>
-					<p className="mt-2 text-base font-semibold text-white/90">
+					<p className="mt-2 text-sm font-semibold text-white/90 sm:text-base">
 						{result.summary.verdict === "close-call"
 							? "Both paths are financially close right now."
 							: `${BUY_VS_RENT_VERDICT_LABELS[result.summary.verdict]} looks stronger for the next ${result.summary.horizonYears} years.`}
@@ -251,23 +286,23 @@ function VerdictHero({ result }: { result: BuyVsRentResult }) {
 				</div>
 			</div>
 
-			<div className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+			<div className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm sm:px-4 sm:py-3">
 				<div className="divide-y divide-white/10">
-					<div className="flex items-center justify-between gap-4 py-2.5">
-						<div>
+					<div className="flex items-center justify-between gap-3 py-2.5">
+						<div className="min-w-0 flex-1">
 							<p className="text-sm font-medium text-white">Break-even</p>
 							<p className="text-xs text-white/60">
 								When buying catches up to renting.
 							</p>
 						</div>
-						<p className="text-xl font-bold text-white tabular-nums">
+						<p className="shrink-0 text-right text-base font-bold text-white tabular-nums sm:text-xl">
 							{result.summary.breakEvenYear
 								? `Year ${result.summary.breakEvenYear}`
 								: "No catch-up"}
 						</p>
 					</div>
-					<div className="flex items-center justify-between gap-4 py-2.5">
-						<div>
+					<div className="flex items-center justify-between gap-3 py-2.5">
+						<div className="min-w-0 flex-1">
 							<p className="text-sm font-medium text-white">
 								Upfront difference
 							</p>
@@ -277,18 +312,18 @@ function VerdictHero({ result }: { result: BuyVsRentResult }) {
 									: "Renting asks for more cash on day one."}
 							</p>
 						</div>
-						<p className="text-xl font-bold text-white tabular-nums">
+						<p className="shrink-0 text-right text-base font-bold text-white tabular-nums sm:text-xl">
 							{formatCurrency(Math.abs(result.summary.upfrontGap))}
 						</p>
 					</div>
-					<div className="flex items-center justify-between gap-4 py-2.5">
-						<div>
+					<div className="flex items-center justify-between gap-3 py-2.5">
+						<div className="min-w-0 flex-1">
 							<p className="text-sm font-medium text-white">Ending gap</p>
 							<p className="text-xs text-white/60">
 								Difference between the two paths at the finish.
 							</p>
 						</div>
-						<p className="text-xl font-bold text-white tabular-nums">
+						<p className="shrink-0 text-right text-base font-bold text-white tabular-nums sm:text-xl">
 							{formatCurrency(Math.abs(result.summary.financialGap))}
 						</p>
 					</div>
@@ -378,7 +413,7 @@ function SummaryCard({
 	return (
 		<div
 			className={cn(
-				"relative h-full overflow-hidden rounded-2xl border p-5",
+				"relative h-full min-w-0 overflow-hidden rounded-2xl border p-4 sm:p-5",
 				emphasis ? emphasisTheme.card : subSurfaceClassName,
 			)}
 		>
@@ -400,7 +435,7 @@ function SummaryCard({
 					{label}
 				</p>
 			</div>
-			<p className="text-2xl font-bold">{value}</p>
+			<p className="wrap-break-word text-xl font-bold sm:text-2xl">{value}</p>
 			<p
 				className={cn(
 					"mt-2 text-sm leading-relaxed",
@@ -437,7 +472,7 @@ function BenchmarkGuardrails({ result }: { result: BuyVsRentResult }) {
 				</div>
 				<div
 					className={cn(
-						"rounded-2xl border px-4 py-3",
+						"min-w-0 rounded-2xl border px-4 py-3 md:max-w-xs",
 						hasFlags
 							? "border-amber-200/80 bg-amber-50/80 dark:border-amber-900/80 dark:bg-amber-950/20"
 							: "border-emerald-200/80 bg-emerald-50/80 dark:border-emerald-900/80 dark:bg-emerald-950/20",
@@ -454,7 +489,7 @@ function BenchmarkGuardrails({ result }: { result: BuyVsRentResult }) {
 				</div>
 			</div>
 
-			<div className="overflow-hidden rounded-2xl border border-border/70 bg-background/60">
+			<div className="min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-background/60">
 				{result.summary.affordabilityBenchmarks.map((benchmark) => (
 					<div
 						key={benchmark.id}
@@ -467,8 +502,8 @@ function BenchmarkGuardrails({ result }: { result: BuyVsRentResult }) {
 									: "bg-emerald-50/60 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100",
 						)}
 					>
-						<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-							<div className="min-w-0">
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+							<div className="order-2 min-w-0 sm:order-1">
 								<div className="flex flex-wrap items-center gap-2">
 									<p className="text-sm font-semibold tracking-tight text-foreground">
 										{benchmark.label}
@@ -509,8 +544,8 @@ function BenchmarkGuardrails({ result }: { result: BuyVsRentResult }) {
 									</div>
 								) : null}
 							</div>
-							<div className="shrink-0 sm:pl-4 sm:text-right">
-								<p className="whitespace-nowrap text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+							<div className="order-1 min-w-0 sm:order-2 sm:shrink-0 sm:pl-4 sm:text-right">
+								<p className="wrap-break-word text-xl font-bold tracking-tight text-foreground sm:whitespace-nowrap sm:text-3xl">
 									{getBenchmarkValueDisplay(benchmark)}
 								</p>
 							</div>
@@ -531,6 +566,7 @@ function NetWorthChart({
 	showRealView: boolean;
 	setShowRealView: (value: boolean) => void;
 }) {
+	const isSmUp = useIsSmUp();
 	const chartConfig: ChartConfig = {
 		gap: {
 			label: showRealView
@@ -540,11 +576,14 @@ function NetWorthChart({
 		},
 	};
 
+	const startYear = result.points[0]?.year ?? result.inputs.startYear;
 	const chartData = result.points.map((point) => ({
+		yearOffset: point.year - startYear,
 		label: point.label,
 		gap: showRealView ? point.realGap : point.gap,
 	}));
-	const xAxisTicks = buildXAxisTicks(chartData.map((point) => point.label));
+	const maxYear = chartData[chartData.length - 1]?.yearOffset ?? 0;
+	const xAxisTicks = computeYearTicks(0, maxYear, isSmUp ? 6 : 5);
 
 	return (
 		<section className={resultSectionClassName}>
@@ -560,8 +599,8 @@ function NetWorthChart({
 					</p>
 				</div>
 				<div className={resultToggleCardClassName}>
-					<div className="flex items-center gap-3">
-						<div>
+					<div className="flex items-center justify-between gap-4">
+						<div className="min-w-0 flex-1">
 							<p className="text-sm font-semibold text-foreground">
 								View in today's money
 							</p>
@@ -573,31 +612,37 @@ function NetWorthChart({
 							checked={showRealView}
 							onCheckedChange={setShowRealView}
 							aria-label="Show inflation-adjusted buying advantage"
+							className="shrink-0"
 						/>
 					</div>
 				</div>
 			</div>
 
-			<ChartContainer config={chartConfig} className="h-80 w-full">
+			<ChartContainer config={chartConfig} className="h-64 w-full sm:h-80">
 				<ComposedChart
 					accessibilityLayer
 					data={chartData}
-					margin={{ top: 8, right: 8, left: 4, bottom: 8 }}
+					margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
 				>
 					<CartesianGrid vertical={false} />
 					<XAxis
-						dataKey="label"
+						type="number"
+						dataKey="yearOffset"
+						domain={[0, maxYear]}
 						ticks={xAxisTicks}
 						tickLine={false}
 						axisLine={false}
-						minTickGap={18}
 						interval={0}
-						padding={{ left: 8, right: 20 }}
+						allowDecimals={false}
+						padding={{ left: 8, right: 8 }}
+						tick={{ fontSize: 11 }}
+						tickFormatter={(value) => formatYearTick(Number(value), !isSmUp)}
 					/>
 					<YAxis
 						tickLine={false}
 						axisLine={false}
-						width={60}
+						width={48}
+						tick={{ fontSize: 11 }}
 						tickFormatter={(value) =>
 							formatCurrency(Number(value)).replace("₹", "")
 						}
@@ -611,6 +656,9 @@ function NetWorthChart({
 					<ChartTooltip
 						content={
 							<ChartTooltipContent
+								labelFormatter={(_value, payload) =>
+									payload?.[0]?.payload?.label ?? ""
+								}
 								formatter={(value, name) => (
 									<div className="flex min-w-44 items-center justify-between gap-4">
 										<span className="text-muted-foreground">
@@ -641,6 +689,7 @@ function NetWorthChart({
 
 function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 	const [showRealCashFlow, setShowRealCashFlow] = useState(false);
+	const isSmUp = useIsSmUp();
 	const chartConfig: ChartConfig = {
 		buyMonthlyOutgo: {
 			label: "Buy monthly outgo",
@@ -665,12 +714,15 @@ function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 			: point.rentMonthlyOutgo;
 
 		return {
+			yearOffset,
 			label: point.label,
 			buyMonthlyOutgo,
 			rentMonthlyOutgo,
 		};
 	});
-	const xAxisTicks = buildXAxisTicks(chartData.map((point) => point.label));
+	const minYear = chartData[0]?.yearOffset ?? 1;
+	const maxYear = chartData[chartData.length - 1]?.yearOffset ?? minYear;
+	const xAxisTicks = computeYearTicks(minYear, maxYear, isSmUp ? 6 : 5);
 
 	return (
 		<section className={resultSectionClassName}>
@@ -686,8 +738,8 @@ function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 					</p>
 				</div>
 				<div className={resultToggleCardClassName}>
-					<div className="flex items-center gap-3">
-						<div>
+					<div className="flex items-center justify-between gap-4">
+						<div className="min-w-0 flex-1">
 							<p className="text-sm font-semibold text-foreground">
 								View in today's money
 							</p>
@@ -700,30 +752,36 @@ function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 							checked={showRealCashFlow}
 							onCheckedChange={setShowRealCashFlow}
 							aria-label="Show inflation-adjusted cash flow"
+							className="shrink-0"
 						/>
 					</div>
 				</div>
 			</div>
-			<ChartContainer config={chartConfig} className="h-72 w-full">
+			<ChartContainer config={chartConfig} className="h-64 w-full sm:h-72">
 				<ComposedChart
 					accessibilityLayer
 					data={chartData}
-					margin={{ top: 8, right: 8, left: 4, bottom: 8 }}
+					margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
 				>
 					<CartesianGrid vertical={false} />
 					<XAxis
-						dataKey="label"
+						type="number"
+						dataKey="yearOffset"
+						domain={[minYear, maxYear]}
 						ticks={xAxisTicks}
 						tickLine={false}
 						axisLine={false}
-						minTickGap={18}
 						interval={0}
-						padding={{ left: 8, right: 20 }}
+						allowDecimals={false}
+						padding={{ left: 8, right: 8 }}
+						tick={{ fontSize: 11 }}
+						tickFormatter={(value) => formatYearTick(Number(value), !isSmUp)}
 					/>
 					<YAxis
 						tickLine={false}
 						axisLine={false}
-						width={56}
+						width={48}
+						tick={{ fontSize: 11 }}
 						tickFormatter={(value) =>
 							formatCurrency(Number(value)).replace("₹", "")
 						}
@@ -731,6 +789,9 @@ function CashFlowChart({ result }: { result: BuyVsRentResult }) {
 					<ChartTooltip
 						content={
 							<ChartTooltipContent
+								labelFormatter={(_value, payload) =>
+									payload?.[0]?.payload?.label ?? ""
+								}
 								formatter={(value, name) => (
 									<div className="flex min-w-44 items-center justify-between gap-4">
 										<span className="text-muted-foreground">
@@ -780,13 +841,16 @@ function ScenarioCards({ result }: { result: BuyVsRentResult }) {
 					{result.summary.confidence} scenario agreement
 				</Badge>
 			</div>
-			<div className={resultCardGridClassName}>
+			<div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
 				{result.summary.scenarios.map((scenario) => (
-					<div key={scenario.label} className={cn(subSurfaceClassName, "p-5")}>
+					<div
+						key={scenario.label}
+						className={cn(subSurfaceClassName, "min-w-0 p-4 sm:p-5")}
+					>
 						<p className="mb-1 text-sm font-semibold text-foreground">
 							{BUY_VS_RENT_SCENARIO_LABELS[scenario.label]}
 						</p>
-						<p className="text-2xl font-bold text-foreground">
+						<p className="wrap-break-word text-xl font-bold text-foreground sm:text-2xl">
 							{BUY_VS_RENT_VERDICT_LABELS[scenario.verdict]}
 						</p>
 						<p className="mt-1 text-sm text-muted-foreground">
@@ -807,7 +871,7 @@ function DecisionContext({ result }: { result: BuyVsRentResult }) {
 	return (
 		<section className={resultSectionClassName}>
 			<div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-				<div>
+				<div className="min-w-0">
 					<p className={sectionLabelClassName}>Why the tool says this</p>
 					<h2 className="mb-4 text-xl font-semibold text-foreground">
 						Key decision drivers
@@ -824,8 +888,8 @@ function DecisionContext({ result }: { result: BuyVsRentResult }) {
 					</div>
 				</div>
 
-				<div className="space-y-4">
-					<div className={cn(subSurfaceClassName, "p-5")}>
+				<div className="min-w-0 space-y-4">
+					<div className={cn(subSurfaceClassName, "min-w-0 p-4 sm:p-5")}>
 						<p className="text-sm font-semibold text-foreground">
 							When buying makes sense
 						</p>
@@ -833,18 +897,9 @@ function DecisionContext({ result }: { result: BuyVsRentResult }) {
 							Buying works better when you stay longer, can handle the upfront
 							cost, and build saleable equity.
 						</p>
-						{result.summary.buyCatchUpYear ? (
-							<p className="mt-3 rounded-2xl border border-border bg-background/70 p-4 text-sm text-foreground">
-								In this setup, buying only catches up financially after about{" "}
-								<span className="font-semibold">
-									year {result.summary.buyCatchUpYear}
-								</span>
-								.
-							</p>
-						) : null}
 					</div>
 
-					<div className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+					<div className="min-w-0 rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
 						<p className="text-sm font-semibold text-foreground">
 							Financial answer, not emotional dismissal
 						</p>
@@ -862,7 +917,7 @@ function InsightsGrid({ result }: { result: BuyVsRentResult }) {
 			<h2 className="mb-4 text-xl font-semibold text-foreground">
 				What matters most in this result
 			</h2>
-			<div className="overflow-hidden rounded-2xl border border-border/70 bg-background/60">
+			<div className="min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-background/60">
 				{result.summary.insights.map((insight) => (
 					<div
 						key={insight.title}
@@ -872,7 +927,7 @@ function InsightsGrid({ result }: { result: BuyVsRentResult }) {
 						)}
 					>
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-							<div className="min-w-0 flex-1">
+							<div className="order-2 min-w-0 flex-1 sm:order-1">
 								<div className="flex items-center gap-2">
 									<span
 										className={cn(
@@ -890,8 +945,8 @@ function InsightsGrid({ result }: { result: BuyVsRentResult }) {
 									{insight.description}
 								</p>
 							</div>
-							<div className="sm:pl-4 sm:text-right">
-								<p className="text-xl font-bold tracking-tight sm:text-2xl">
+							<div className="order-1 min-w-0 sm:order-2 sm:pl-4 sm:text-right">
+								<p className="wrap-break-word text-lg font-bold tracking-tight sm:text-2xl">
 									{insight.value}
 								</p>
 							</div>
@@ -912,8 +967,8 @@ function ComparisonTable({ result }: { result: BuyVsRentResult }) {
 					See exactly where the path changes
 				</h2>
 			</div>
-			<div className="overflow-x-auto">
-				<Table>
+			<div className="-mx-4 sm:mx-0">
+				<Table className="min-w-160">
 					<TableHeader>
 						<TableRow>
 							<TableHead>Year</TableHead>
