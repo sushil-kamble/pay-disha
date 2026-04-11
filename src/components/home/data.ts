@@ -87,7 +87,7 @@ export const TOOLS: Tool[] = [
 		icon: Home,
 		color: "text-[#ec4899]",
 		bg: "bg-[#ec4899]/10",
-		status: "cooking",
+		status: "live",
 		href: "/tools/buy-vs-rent",
 	},
 	{

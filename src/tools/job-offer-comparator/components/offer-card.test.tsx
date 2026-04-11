@@ -1,10 +1,44 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type * as React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createTestOffer } from "../test-helpers";
 import { OfferCard } from "./offer-card";
+
+vi.mock("#/components/ui/collapsible", () => ({
+	Collapsible: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	CollapsibleTrigger: ({ children }: React.PropsWithChildren) => (
+		<>{children}</>
+	),
+	CollapsibleContent: ({ children }: React.PropsWithChildren) => (
+		<>{children}</>
+	),
+}));
+
+vi.mock("#/components/ui/dropdown-menu", () => ({
+	DropdownMenu: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	DropdownMenuTrigger: ({ children }: React.PropsWithChildren) => (
+		<>{children}</>
+	),
+	DropdownMenuContent: ({ children }: React.PropsWithChildren) => (
+		<>{children}</>
+	),
+	DropdownMenuItem: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	DropdownMenuSeparator: () => null,
+}));
+
+vi.mock("#/components/ui/tooltip", () => ({
+	TooltipProvider: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	TooltipTrigger: ({ children }: React.PropsWithChildren) => <>{children}</>,
+	TooltipContent: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}));
+
+vi.mock("./advanced-offer-fields", () => ({
+	AdvancedOfferFields: () => <div data-testid="advanced-offer-fields" />,
+}));
 
 afterEach(() => {
 	cleanup();

@@ -2,7 +2,6 @@ import {
 	ChevronDown,
 	HeartHandshake,
 	Home,
-	Info,
 	Landmark,
 	LineChart as LineChartIcon,
 	PiggyBank,
@@ -39,7 +38,6 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Separator } from "#/components/ui/separator";
-import { Slider } from "#/components/ui/slider";
 import { Switch } from "#/components/ui/switch";
 import {
 	Table,
@@ -49,11 +47,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import {
 	calculateBuyVsRent,
@@ -120,23 +113,6 @@ function getToneClasses(tone: "positive" | "neutral" | "caution") {
 	return "border-border bg-muted/40 text-foreground";
 }
 
-function TooltipInfo({ text }: { text: string }) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
-					aria-label={text}
-				>
-					<Info className="size-3.5" />
-				</button>
-			</TooltipTrigger>
-			<TooltipContent className="max-w-64 text-pretty">{text}</TooltipContent>
-		</Tooltip>
-	);
-}
-
 function Field({
 	id,
 	label,
@@ -155,10 +131,10 @@ function Field({
 	helper?: string;
 }) {
 	return (
-		<div className="grid content-start gap-2">
+		<div className="grid content-start gap-1.5">
 			<Label
 				htmlFor={id}
-				className="flex min-h-10 items-end text-sm font-semibold text-foreground"
+				className="flex items-end text-sm font-semibold text-foreground"
 			>
 				{label}
 			</Label>
@@ -178,48 +154,7 @@ function Field({
 				) : null}
 			</div>
 			{helper ? (
-				<p className="mt-1.5 text-xs text-muted-foreground">{helper}</p>
-			) : null}
-		</div>
-	);
-}
-
-function SliderField({
-	label,
-	value,
-	onChange,
-	min,
-	max,
-	step,
-	valueLabel,
-	helper,
-}: {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-	min: number;
-	max: number;
-	step?: number;
-	valueLabel: string;
-	helper?: string;
-}) {
-	return (
-		<div>
-			<div className="mb-2 flex items-center justify-between gap-3">
-				<Label className="flex min-h-10 items-end text-sm font-semibold text-foreground">
-					{label}
-				</Label>
-				<span className="text-sm font-bold text-foreground">{valueLabel}</span>
-			</div>
-			<Slider
-				value={[value]}
-				onValueChange={(next) => onChange(next[0] ?? value)}
-				min={min}
-				max={max}
-				step={step}
-			/>
-			{helper ? (
-				<p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+				<p className="mt-0.5 text-xs text-muted-foreground">{helper}</p>
 			) : null}
 		</div>
 	);
@@ -236,12 +171,12 @@ export function BuyVsRentPage() {
 		String(DEFAULT_BUY_VS_RENT_INPUTS.homeLoanRatePct),
 	);
 	const [stayYears, setStayYears] = useState(
-		DEFAULT_BUY_VS_RENT_INPUTS.stayYears,
+		String(DEFAULT_BUY_VS_RENT_INPUTS.stayYears),
 	);
 	const [downPaymentPct, setDownPaymentPct] = useState(
-		DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct,
+		String(DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct),
 	);
-	const [advancedOpen, setAdvancedOpen] = useState(true);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
 	const [taxOpen, setTaxOpen] = useState(false);
 	const [showRealView, setShowRealView] = useState(false);
 
@@ -297,8 +232,11 @@ export function BuyVsRentPage() {
 					monthlyRent,
 					DEFAULT_BUY_VS_RENT_INPUTS.monthlyRent,
 				),
-				stayYears,
-				downPaymentPct,
+				stayYears: parseNumber(stayYears, DEFAULT_BUY_VS_RENT_INPUTS.stayYears),
+				downPaymentPct: parseNumber(
+					downPaymentPct,
+					DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct,
+				),
 				homeLoanRatePct: parseNumber(
 					homeLoanRatePct,
 					DEFAULT_BUY_VS_RENT_INPUTS.homeLoanRatePct,
@@ -382,7 +320,10 @@ export function BuyVsRentPage() {
 			propertyPriceLakhs,
 			DEFAULT_BUY_VS_RENT_INPUTS.propertyPriceLakhs,
 		) * 100000;
-	const downPaymentValue = propertyPriceRupees * (downPaymentPct / 100);
+	const downPaymentValue =
+		propertyPriceRupees *
+		(parseNumber(downPaymentPct, DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct) /
+			100);
 
 	function resetDefaults() {
 		setPropertyPriceLakhs(
@@ -390,8 +331,8 @@ export function BuyVsRentPage() {
 		);
 		setMonthlyRent(String(DEFAULT_BUY_VS_RENT_INPUTS.monthlyRent));
 		setHomeLoanRatePct(String(DEFAULT_BUY_VS_RENT_INPUTS.homeLoanRatePct));
-		setStayYears(DEFAULT_BUY_VS_RENT_INPUTS.stayYears);
-		setDownPaymentPct(DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct);
+		setStayYears(String(DEFAULT_BUY_VS_RENT_INPUTS.stayYears));
+		setDownPaymentPct(String(DEFAULT_BUY_VS_RENT_INPUTS.downPaymentPct));
 		setLoanTenureYears(String(DEFAULT_BUY_VS_RENT_INPUTS.loanTenureYears));
 		setPropertyAppreciationPct(
 			String(DEFAULT_BUY_VS_RENT_INPUTS.propertyAppreciationPct),
@@ -439,33 +380,30 @@ export function BuyVsRentPage() {
 			<div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
 				<div className="self-start">
 					<div className={cn(surfaceClassName, "p-6")}>
-						<div className="mb-5 flex items-center justify-between gap-3">
-							<div>
-								<p className={sectionLabelClassName}>Quick setup</p>
-								<p className="text-sm text-muted-foreground">
-									Keep it simple. The tool fills the rest with sensible
-									defaults.
-								</p>
-							</div>
+						<div className="flex items-center justify-between gap-3 mb-4 border-b border-border/80 pb-4">
+							<p className="text-md font-semibold text-foreground">
+								Configuration
+							</p>
 							<Button
 								type="button"
 								variant="outline"
 								size="sm"
 								onClick={resetDefaults}
+								className="hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
 							>
 								<RefreshCcw className="size-4" />
 								Reset
 							</Button>
 						</div>
 
-						<div className="space-y-5">
+						<div className="space-y-4">
 							<Field
 								id="property-price"
 								label="Home price"
 								value={propertyPriceLakhs}
 								onChange={setPropertyPriceLakhs}
 								placeholder="90"
-								suffix="L"
+								suffix="Lakhs"
 								helper={`= ₹${formatIndian(propertyPriceRupees)}`}
 							/>
 							<Field
@@ -476,24 +414,22 @@ export function BuyVsRentPage() {
 								placeholder="30000"
 								suffix="/mo"
 							/>
-							<SliderField
+							<Field
+								id="stay-years"
 								label="How long do you expect to stay?"
 								value={stayYears}
 								onChange={setStayYears}
-								min={1}
-								max={20}
-								step={1}
-								valueLabel={`${stayYears} years`}
+								placeholder="10"
+								suffix="yrs"
 								helper="Holding period is the biggest driver in this decision."
 							/>
-							<SliderField
+							<Field
+								id="down-payment"
 								label="Down payment"
 								value={downPaymentPct}
 								onChange={setDownPaymentPct}
-								min={10}
-								max={50}
-								step={1}
-								valueLabel={`${downPaymentPct}%`}
+								placeholder="20"
+								suffix="%"
 								helper={`That is roughly ${formatCurrency(downPaymentValue)} up front.`}
 							/>
 							<Field
@@ -508,215 +444,214 @@ export function BuyVsRentPage() {
 							<Separator />
 
 							<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-								<div className={cn(subSurfaceClassName, "p-4")}>
-									<div className="flex items-center justify-between gap-3">
-										<div>
-											<div className="flex items-center gap-1.5">
-												<p className="text-sm font-semibold text-foreground">
-													Make it more accurate
-												</p>
-												<TooltipInfo text="These assumptions shape the final recommendation, but you do not need to touch them for a useful first answer." />
-											</div>
-											<p className="mt-1 text-xs text-muted-foreground">
-												Useful when you know your market better than the
-												defaults.
-											</p>
-										</div>
-										<CollapsibleTrigger asChild>
-											<Button type="button" variant="outline" size="sm">
-												{advancedOpen ? "Hide" : "Show"}
-												<ChevronDown
-													className={cn(
-														"size-4 transition-transform",
-														advancedOpen && "rotate-180",
-													)}
-												/>
-											</Button>
-										</CollapsibleTrigger>
+								<div className="flex items-center justify-between gap-3">
+									<div>
+										<p className="text-sm font-semibold text-foreground">
+											Make it more accurate
+										</p>
+										<p className="mt-0.5 text-xs text-muted-foreground">
+											Useful when you know your market better than the defaults.
+										</p>
 									</div>
-
-									<CollapsibleContent className="mt-4 space-y-4">
-										<Field
-											id="loan-tenure"
-											label="Loan tenure"
-											value={loanTenureYears}
-											onChange={setLoanTenureYears}
-											placeholder="20"
-											suffix="yrs"
-										/>
-										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-											<Field
-												id="property-appreciation"
-												label="Property growth"
-												value={propertyAppreciationPct}
-												onChange={setPropertyAppreciationPct}
-												placeholder="6"
-												suffix="%"
+									<CollapsibleTrigger asChild>
+										<button
+											type="button"
+											aria-label={advancedOpen ? "Collapse" : "Expand"}
+											className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+										>
+											<ChevronDown
+												className={cn(
+													"size-4 transition-transform",
+													advancedOpen && "rotate-180",
+												)}
 											/>
-											<Field
-												id="rent-growth"
-												label="Rent growth"
-												value={rentIncreasePct}
-												onChange={setRentIncreasePct}
-												placeholder="6"
-												suffix="%"
-											/>
-										</div>
-										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-											<Field
-												id="investment-return"
-												label="Investment return"
-												value={investmentReturnPct}
-												onChange={setInvestmentReturnPct}
-												placeholder="10"
-												suffix="%"
-												helper="Used for the rent-and-invest path."
-											/>
-											<Field
-												id="inflation-rate"
-												label="Inflation rate"
-												value={inflationRatePct}
-												onChange={setInflationRatePct}
-												placeholder="6"
-												suffix="%"
-												helper="Used only for the real-value chart toggle."
-											/>
-										</div>
-										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-											<Field
-												id="maintenance"
-												label="Maintenance reserve"
-												value={annualMaintenancePct}
-												onChange={setAnnualMaintenancePct}
-												placeholder="1.4"
-												suffix="%"
-												helper="Applied on the home value each year."
-											/>
-											<Field
-												id="owner-fixed-costs"
-												label="Owner fixed costs"
-												value={annualOwnerFixedCosts}
-												onChange={setAnnualOwnerFixedCosts}
-												placeholder="36000"
-												suffix="/yr"
-												helper="Property tax, insurance, small repairs."
-											/>
-										</div>
-										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-											<Field
-												id="purchase-costs"
-												label="Purchase costs"
-												value={purchaseCostPct}
-												onChange={setPurchaseCostPct}
-												placeholder="7"
-												suffix="%"
-												helper="Stamp duty, registration, legal, setup."
-											/>
-											<Field
-												id="sale-costs"
-												label="Exit costs when selling"
-												value={saleCostPct}
-												onChange={setSaleCostPct}
-												placeholder="2"
-												suffix="%"
-												helper="Brokerage and selling friction."
-											/>
-										</div>
-										<div className="grid gap-4 sm:grid-cols-2 [&>*]:h-full">
-											<Field
-												id="deposit-months"
-												label="Security deposit"
-												value={rentDepositMonths}
-												onChange={setRentDepositMonths}
-												placeholder="3"
-												suffix="months"
-											/>
-											<Field
-												id="brokerage-months"
-												label="Rent brokerage"
-												value={rentBrokerageMonths}
-												onChange={setRentBrokerageMonths}
-												placeholder="1"
-												suffix="months"
-											/>
-										</div>
-									</CollapsibleContent>
+										</button>
+									</CollapsibleTrigger>
 								</div>
+
+								<CollapsibleContent className="mt-3 space-y-3">
+									<Field
+										id="loan-tenure"
+										label="Loan tenure"
+										value={loanTenureYears}
+										onChange={setLoanTenureYears}
+										placeholder="20"
+										suffix="yrs"
+									/>
+									<div className="grid gap-4 sm:grid-cols-2 *:h-full">
+										<Field
+											id="property-appreciation"
+											label="Property growth"
+											value={propertyAppreciationPct}
+											onChange={setPropertyAppreciationPct}
+											placeholder="6"
+											suffix="%"
+										/>
+										<Field
+											id="rent-growth"
+											label="Rent growth"
+											value={rentIncreasePct}
+											onChange={setRentIncreasePct}
+											placeholder="6"
+											suffix="%"
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2 *:h-full">
+										<Field
+											id="investment-return"
+											label="Investment return"
+											value={investmentReturnPct}
+											onChange={setInvestmentReturnPct}
+											placeholder="10"
+											suffix="%"
+											helper="Used for the rent-and-invest path."
+										/>
+										<Field
+											id="inflation-rate"
+											label="Inflation rate"
+											value={inflationRatePct}
+											onChange={setInflationRatePct}
+											placeholder="6"
+											suffix="%"
+											helper="Used only for the real-value chart toggle."
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2 *:h-full">
+										<Field
+											id="maintenance"
+											label="Maintenance reserve"
+											value={annualMaintenancePct}
+											onChange={setAnnualMaintenancePct}
+											placeholder="1.4"
+											suffix="%"
+											helper="Applied on the home value each year."
+										/>
+										<Field
+											id="owner-fixed-costs"
+											label="Owner fixed costs"
+											value={annualOwnerFixedCosts}
+											onChange={setAnnualOwnerFixedCosts}
+											placeholder="36000"
+											suffix="/yr"
+											helper="Property tax, insurance, small repairs."
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2 *:h-full">
+										<Field
+											id="purchase-costs"
+											label="Purchase costs"
+											value={purchaseCostPct}
+											onChange={setPurchaseCostPct}
+											placeholder="7"
+											suffix="%"
+											helper="Stamp duty, registration, legal, setup."
+										/>
+										<Field
+											id="sale-costs"
+											label="Exit costs"
+											value={saleCostPct}
+											onChange={setSaleCostPct}
+											placeholder="2"
+											suffix="%"
+											helper="Brokerage and selling friction."
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2 *:h-full">
+										<Field
+											id="deposit-months"
+											label="Security deposit"
+											value={rentDepositMonths}
+											onChange={setRentDepositMonths}
+											placeholder="3"
+											suffix="/mo"
+										/>
+										<Field
+											id="brokerage-months"
+											label="Rent brokerage"
+											value={rentBrokerageMonths}
+											onChange={setRentBrokerageMonths}
+											placeholder="1"
+											suffix="/mo"
+										/>
+									</div>
+								</CollapsibleContent>
 							</Collapsible>
+
+							<Separator />
 
 							<Collapsible open={taxOpen} onOpenChange={setTaxOpen}>
-								<div className={cn(subSurfaceClassName, "p-4")}>
-									<div className="flex items-center justify-between gap-3">
-										<div>
-											<div className="flex items-center gap-1.5">
-												<p className="text-sm font-semibold text-foreground">
-													Salary and tax refinements
-												</p>
-												<TooltipInfo text="Keep these at zero if you want a pure housing decision. Add them only when you know your likely annual tax savings." />
-											</div>
-											<p className="mt-1 text-xs text-muted-foreground">
-												Useful when old-regime HRA or home-loan deductions
-												materially affect you.
-											</p>
-										</div>
-										<CollapsibleTrigger asChild>
-											<Button type="button" variant="outline" size="sm">
-												{taxOpen ? "Hide" : "Show"}
-												<ChevronDown
-													className={cn(
-														"size-4 transition-transform",
-														taxOpen && "rotate-180",
-													)}
-												/>
-											</Button>
-										</CollapsibleTrigger>
+								<div className="flex items-center justify-between gap-3">
+									<div>
+										<p className="text-sm font-semibold text-foreground">
+											Salary and tax refinements
+										</p>
+										<p className="mt-0.5 text-xs text-muted-foreground">
+											Useful when old-regime HRA or home-loan deductions
+											materially affect you.
+										</p>
 									</div>
-
-									<CollapsibleContent className="mt-4 space-y-4">
-										<Field
-											id="buy-tax-benefit"
-											label="Annual buy-side tax benefit"
-											value={annualBuyTaxBenefit}
-											onChange={setAnnualBuyTaxBenefit}
-											placeholder="0"
-											suffix="/yr"
-											helper="Example: estimated Section 24 / 80C benefit."
-										/>
-										<Field
-											id="rent-tax-benefit"
-											label="Annual rent-side tax benefit"
-											value={annualRentTaxBenefit}
-											onChange={setAnnualRentTaxBenefit}
-											placeholder="0"
-											suffix="/yr"
-											helper="Example: expected HRA tax saving while renting."
-										/>
-										<Field
-											id="take-home-pay"
-											label="Monthly take-home pay"
-											value={monthlyTakeHomePay}
-											onChange={setMonthlyTakeHomePay}
-											placeholder="0"
-											suffix="/mo"
-											helper="Optional. Adds a stress test based on your income."
-										/>
-									</CollapsibleContent>
+									<CollapsibleTrigger asChild>
+										<button
+											type="button"
+											aria-label={taxOpen ? "Collapse" : "Expand"}
+											className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+										>
+											<ChevronDown
+												className={cn(
+													"size-4 transition-transform",
+													taxOpen && "rotate-180",
+												)}
+											/>
+										</button>
+									</CollapsibleTrigger>
 								</div>
+
+								<CollapsibleContent className="mt-3 space-y-3">
+									<Field
+										id="buy-tax-benefit"
+										label="Annual buy-side tax benefit"
+										value={annualBuyTaxBenefit}
+										onChange={setAnnualBuyTaxBenefit}
+										placeholder="0"
+										suffix="/yr"
+										helper="Example: estimated Section 24 / 80C benefit."
+									/>
+									<Field
+										id="rent-tax-benefit"
+										label="Annual rent-side tax benefit"
+										value={annualRentTaxBenefit}
+										onChange={setAnnualRentTaxBenefit}
+										placeholder="0"
+										suffix="/yr"
+										helper="Example: expected HRA tax saving while renting."
+									/>
+									<Field
+										id="take-home-pay"
+										label="Monthly take-home pay"
+										value={monthlyTakeHomePay}
+										onChange={setMonthlyTakeHomePay}
+										placeholder="0"
+										suffix="/mo"
+										helper="Optional. Adds a stress test based on your income."
+									/>
+								</CollapsibleContent>
 							</Collapsible>
 
-							<div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-								<div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-									<ShieldCheck className="size-4 text-primary" />
-									Private by design
-								</div>
-								The tool runs entirely in your browser. We are not storing your
-								house decision, salary assumptions, or tax numbers anywhere.
-							</div>
+							<Separator />
+
+							<p className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+								<span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+									<ShieldCheck className="size-3" />
+								</span>
+								<span>
+									All calculations stay in your browser. Nothing is stored.
+								</span>
+							</p>
 						</div>
 					</div>
 				</div>
 
-				<div className="space-y-5">
+				<div className="space-y-3">
 					<VerdictHero result={result} />
 					<SummaryCards result={result} />
 					<NetWorthChart
@@ -743,29 +678,29 @@ function VerdictHero({
 	const theme = getVerdictTheme(result.summary.verdict);
 
 	return (
-		<div className={cn("overflow-hidden rounded-3xl p-6 md:p-7", theme.card)}>
-			<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+		<div className={cn("overflow-hidden rounded-2xl p-5", theme.card)}>
+			<div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 				<div>
-					<p className={cn("mb-2 text-sm font-medium", theme.kicker)}>
+					<p className={cn("mb-1 text-xs font-medium", theme.kicker)}>
 						Buy vs Rent
 					</p>
-					<h2 className="text-5xl font-black leading-none md:text-6xl">
+					<h2 className="text-4xl font-black leading-none md:text-5xl">
 						{BUY_VS_RENT_VERDICT_LABELS[result.summary.verdict]}
 					</h2>
-					<p className="mt-3 text-lg font-semibold text-white/92 md:text-xl">
+					<p className="mt-2 text-base font-semibold text-white/90">
 						{result.summary.verdict === "close-call"
 							? "Both paths are financially close right now."
 							: `${BUY_VS_RENT_VERDICT_LABELS[result.summary.verdict]} looks stronger for the next ${result.summary.horizonYears} years.`}
 					</p>
-					<p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/85 md:text-base">
+					<p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/80">
 						{result.summary.story}
 					</p>
 				</div>
-				<div className="flex flex-wrap gap-2">
+				<div className="flex flex-wrap gap-1.5">
 					<Badge
 						variant="outline"
 						className={cn(
-							"rounded-full px-3 py-1 text-xs font-semibold",
+							"rounded-full px-2.5 py-0.5 text-xs font-semibold",
 							theme.badge,
 						)}
 					>
@@ -774,7 +709,7 @@ function VerdictHero({
 					<Badge
 						variant="outline"
 						className={cn(
-							"rounded-full px-3 py-1 text-xs font-semibold",
+							"rounded-full px-2.5 py-0.5 text-xs font-semibold",
 							theme.badge,
 						)}
 					>
@@ -783,58 +718,51 @@ function VerdictHero({
 				</div>
 			</div>
 
-			<div className="grid gap-4 md:grid-cols-2">
-				<div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm">
-					<div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-						<HeartHandshake className="size-4" />
-						How to read this
+			<div className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+				<div className="divide-y divide-white/10">
+					<div className="flex items-center justify-between gap-4 py-2.5">
+						<div>
+							<p className="text-sm font-medium text-white">Break-even</p>
+							<p className="text-xs text-white/60">
+								When buying catches up to renting.
+							</p>
+						</div>
+						<p className="text-xl font-bold text-white tabular-nums">
+							{result.summary.breakEvenYear
+								? `Year ${result.summary.breakEvenYear}`
+								: "No catch-up"}
+						</p>
 					</div>
-					<p className="text-sm leading-relaxed text-white/80">
-						{result.summary.decisionNote}
-					</p>
-				</div>
-				<div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm">
-					<div className="space-y-4 text-white/85">
-						<div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
-							<div>
-								<p className="text-sm font-medium text-white">Break-even</p>
-								<p className="mt-1 text-xs text-white/70">
-									When buying catches up to renting.
-								</p>
-							</div>
-							<p className="text-2xl font-bold text-white">
-								{result.summary.breakEvenYear
-									? `Year ${result.summary.breakEvenYear}`
-									: "No catch-up"}
+					<div className="flex items-center justify-between gap-4 py-2.5">
+						<div>
+							<p className="text-sm font-medium text-white">
+								Upfront difference
+							</p>
+							<p className="text-xs text-white/60">
+								Buying asks for more cash on day one.
 							</p>
 						</div>
-						<div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
-							<div>
-								<p className="text-sm font-medium text-white">
-									Upfront difference
-								</p>
-								<p className="mt-1 text-xs text-white/70">
-									Buying asks for more cash on day one.
-								</p>
-							</div>
-							<p className="text-2xl font-bold text-white">
-								{formatCurrency(result.summary.upfrontGap)}
+						<p className="text-xl font-bold text-white tabular-nums">
+							{formatCurrency(result.summary.upfrontGap)}
+						</p>
+					</div>
+					<div className="flex items-center justify-between gap-4 py-2.5">
+						<div>
+							<p className="text-sm font-medium text-white">Ending gap</p>
+							<p className="text-xs text-white/60">
+								Difference between the two paths at the finish.
 							</p>
 						</div>
-						<div className="flex items-start justify-between gap-4">
-							<div>
-								<p className="text-sm font-medium text-white">Ending gap</p>
-								<p className="mt-1 text-xs text-white/70">
-									Difference between the two paths at the finish.
-								</p>
-							</div>
-							<p className="text-2xl font-bold text-white">
-								{formatCurrency(Math.abs(result.summary.financialGap))}
-							</p>
-						</div>
+						<p className="text-xl font-bold text-white tabular-nums">
+							{formatCurrency(Math.abs(result.summary.financialGap))}
+						</p>
 					</div>
 				</div>
 			</div>
+			<p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-white/55">
+				<HeartHandshake className="mt-0.5 size-3 shrink-0" />
+				{result.summary.decisionNote}
+			</p>
 		</div>
 	);
 }
