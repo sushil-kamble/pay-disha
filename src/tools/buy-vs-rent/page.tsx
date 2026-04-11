@@ -213,13 +213,15 @@ export function BuyVsRentPage() {
 	const [rentBrokerageMonths, setRentBrokerageMonths] = useState(
 		String(DEFAULT_BUY_VS_RENT_INPUTS.rentBrokerageMonths),
 	);
-	const [annualBuyTaxBenefit, setAnnualBuyTaxBenefit] = useState(
-		String(DEFAULT_BUY_VS_RENT_INPUTS.annualBuyTaxBenefit),
+	const [annualCtcLakhs, setAnnualCtcLakhs] = useState(
+		String(DEFAULT_BUY_VS_RENT_INPUTS.annualCtcLakhs),
 	);
-	const [annualRentTaxBenefit, setAnnualRentTaxBenefit] = useState(
-		String(DEFAULT_BUY_VS_RENT_INPUTS.annualRentTaxBenefit),
+	const [ageYears, setAgeYears] = useState(
+		String(DEFAULT_BUY_VS_RENT_INPUTS.ageYears),
 	);
-	const [monthlyTakeHomePay, setMonthlyTakeHomePay] = useState("");
+	const [salaryGrowthPct, setSalaryGrowthPct] = useState(
+		String(DEFAULT_BUY_VS_RENT_INPUTS.salaryGrowthPct),
+	);
 
 	const result = useMemo(
 		() =>
@@ -285,31 +287,34 @@ export function BuyVsRentPage() {
 					rentBrokerageMonths,
 					DEFAULT_BUY_VS_RENT_INPUTS.rentBrokerageMonths,
 				),
-				annualBuyTaxBenefit: parseNumber(annualBuyTaxBenefit, 0),
-				annualRentTaxBenefit: parseNumber(annualRentTaxBenefit, 0),
-				monthlyTakeHomePay:
-					monthlyTakeHomePay.trim().length > 0
-						? parseNumber(monthlyTakeHomePay, 0)
-						: null,
+				annualCtcLakhs: parseNumber(
+					annualCtcLakhs,
+					DEFAULT_BUY_VS_RENT_INPUTS.annualCtcLakhs,
+				),
+				ageYears: parseNumber(ageYears, DEFAULT_BUY_VS_RENT_INPUTS.ageYears),
+				salaryGrowthPct: parseNumber(
+					salaryGrowthPct,
+					DEFAULT_BUY_VS_RENT_INPUTS.salaryGrowthPct,
+				),
 			}),
 		[
-			annualBuyTaxBenefit,
 			annualMaintenancePct,
+			annualCtcLakhs,
 			annualOwnerFixedCosts,
-			annualRentTaxBenefit,
+			ageYears,
 			downPaymentPct,
 			homeLoanRatePct,
 			inflationRatePct,
 			investmentReturnPct,
 			loanTenureYears,
 			monthlyRent,
-			monthlyTakeHomePay,
 			propertyAppreciationPct,
 			propertyPriceLakhs,
 			purchaseCostPct,
 			rentBrokerageMonths,
 			rentDepositMonths,
 			rentIncreasePct,
+			salaryGrowthPct,
 			saleCostPct,
 			stayYears,
 		],
@@ -354,13 +359,9 @@ export function BuyVsRentPage() {
 		setRentBrokerageMonths(
 			String(DEFAULT_BUY_VS_RENT_INPUTS.rentBrokerageMonths),
 		);
-		setAnnualBuyTaxBenefit(
-			String(DEFAULT_BUY_VS_RENT_INPUTS.annualBuyTaxBenefit),
-		);
-		setAnnualRentTaxBenefit(
-			String(DEFAULT_BUY_VS_RENT_INPUTS.annualRentTaxBenefit),
-		);
-		setMonthlyTakeHomePay("");
+		setAnnualCtcLakhs(String(DEFAULT_BUY_VS_RENT_INPUTS.annualCtcLakhs));
+		setAgeYears(String(DEFAULT_BUY_VS_RENT_INPUTS.ageYears));
+		setSalaryGrowthPct(String(DEFAULT_BUY_VS_RENT_INPUTS.salaryGrowthPct));
 	}
 
 	return (
@@ -583,11 +584,11 @@ export function BuyVsRentPage() {
 								<div className="flex items-center justify-between gap-3">
 									<div>
 										<p className="text-sm font-semibold text-foreground">
-											Salary and tax refinements
+											Income & life stage
 										</p>
 										<p className="mt-0.5 text-xs text-muted-foreground">
-											Useful when old-regime HRA or home-loan deductions
-											materially affect you.
+											Share your earnings profile so the affordability stress
+											check uses a personalized take-home estimate.
 										</p>
 									</div>
 									<CollapsibleTrigger asChild>
@@ -608,31 +609,31 @@ export function BuyVsRentPage() {
 
 								<CollapsibleContent className="mt-3 space-y-3">
 									<Field
-										id="buy-tax-benefit"
-										label="Annual buy-side tax benefit"
-										value={annualBuyTaxBenefit}
-										onChange={setAnnualBuyTaxBenefit}
-										placeholder="0"
-										suffix="/yr"
-										helper="Example: estimated Section 24 / 80C benefit."
+										id="annual-ctc"
+										label="Annual income (CTC)"
+										value={annualCtcLakhs}
+										onChange={setAnnualCtcLakhs}
+										placeholder="18"
+										suffix="LPA"
+										helper="Pre-tax annual salary in lakhs."
 									/>
 									<Field
-										id="rent-tax-benefit"
-										label="Annual rent-side tax benefit"
-										value={annualRentTaxBenefit}
-										onChange={setAnnualRentTaxBenefit}
-										placeholder="0"
-										suffix="/yr"
-										helper="Example: expected HRA tax saving while renting."
+										id="age-years"
+										label="Age"
+										value={ageYears}
+										onChange={setAgeYears}
+										placeholder="30"
+										suffix="yrs"
+										helper="Used for age-vs-tenure affordability checks."
 									/>
 									<Field
-										id="take-home-pay"
-										label="Monthly take-home pay"
-										value={monthlyTakeHomePay}
-										onChange={setMonthlyTakeHomePay}
-										placeholder="0"
-										suffix="/mo"
-										helper="Optional. Adds a stress test based on your income."
+										id="salary-growth"
+										label="Expected annual salary growth"
+										value={salaryGrowthPct}
+										onChange={setSalaryGrowthPct}
+										placeholder="8"
+										suffix="%"
+										helper="Used to project take-home as income grows."
 									/>
 								</CollapsibleContent>
 							</Collapsible>
@@ -760,7 +761,7 @@ function VerdictHero({
 				</div>
 			</div>
 			<p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-white/55">
-				<HeartHandshake className="mt-0.5 size-3 shrink-0" />
+				<HeartHandshake className="mt-1 size-3 shrink-0" />
 				{result.summary.decisionNote}
 			</p>
 		</div>
@@ -1198,18 +1199,18 @@ function InsightsGrid({
 			<h2 className="mb-4 text-xl font-semibold text-foreground">
 				What matters most in this result
 			</h2>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="flex flex-col gap-3">
 				{result.summary.insights.map((insight) => (
 					<div
 						key={insight.title}
 						className={cn(
-							"rounded-2xl border-l-4 px-4 py-3",
+							"rounded-xl border-l-4 px-4 py-3",
 							getToneClasses(insight.tone),
 						)}
 					>
 						<p className="text-sm font-semibold">{insight.title}</p>
-						<p className="mt-1 text-xl font-bold">{insight.value}</p>
-						<p className="mt-2 text-sm leading-relaxed opacity-90">
+						<p className="mt-0.5 text-lg font-bold">{insight.value}</p>
+						<p className="mt-1.5 text-sm leading-snug opacity-90">
 							{insight.description}
 						</p>
 					</div>

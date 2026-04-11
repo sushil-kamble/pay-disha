@@ -1,6 +1,8 @@
 export type BuyVsRentVerdict = "buy" | "rent" | "close-call";
 
 export type InsightTone = "positive" | "neutral" | "caution";
+export type BenchmarkBand = "good" | "watch" | "risky";
+export type RecommendedTaxRegime = "new" | "old";
 
 export type ScenarioLabel =
 	| "lower-housing-upside"
@@ -24,9 +26,9 @@ export interface BuyVsRentInputs {
 	saleCostPct: number;
 	rentDepositMonths: number;
 	rentBrokerageMonths: number;
-	annualBuyTaxBenefit: number;
-	annualRentTaxBenefit: number;
-	monthlyTakeHomePay?: number | null;
+	annualCtcLakhs: number;
+	ageYears: number;
+	salaryGrowthPct: number;
 	startYear: number;
 }
 
@@ -53,10 +55,18 @@ export interface BuyVsRentPoint {
 	annualInterestPaid: number;
 	annualMaintenancePaid: number;
 	annualRentPaid: number;
-	cumulativeBuyTaxBenefit: number;
-	cumulativeRentTaxBenefit: number;
+	monthlyTakeHomeOldRegime: number | null;
+	monthlyTakeHomeNewRegime: number | null;
+	monthlyTakeHomeRecommended: number | null;
 	buyStressRatio: number | null;
 	rentStressRatio: number | null;
+}
+
+export interface AffordabilityBenchmark {
+	label: string;
+	value: string;
+	band: BenchmarkBand;
+	description: string;
 }
 
 export interface BuyVsRentInsight {
@@ -95,10 +105,19 @@ export interface BuyVsRentSummary {
 	finalYearRentMonthlyOutgo: number;
 	finalHomeEquity: number;
 	finalRentCorpus: number;
-	totalBuyTaxBenefit: number;
-	totalRentTaxBenefit: number;
+	monthlyTakeHomeOldRegime: number | null;
+	monthlyTakeHomeNewRegime: number | null;
+	monthlyTakeHomeRecommended: number | null;
+	recommendedTaxRegime: RecommendedTaxRegime | null;
+	recommendedTaxRegimeNote: string;
 	buyStressRatio: number | null;
 	rentStressRatio: number | null;
+	priceToIncomeRatio: number;
+	priceToIncomeBand: BenchmarkBand;
+	emiToIncomeRatio: number | null;
+	emiToIncomeBand: BenchmarkBand | null;
+	ageTenureBand: BenchmarkBand;
+	affordabilityBenchmarks: AffordabilityBenchmark[];
 	buyBecomesReasonableAfterYear: number | null;
 	reasons: string[];
 	decisionNote: string;

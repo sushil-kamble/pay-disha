@@ -1,5 +1,9 @@
-import { BUY_VS_RENT_VERDICT_LABELS } from "./constants";
+import {
+	BUY_VS_RENT_BENCHMARKS,
+	BUY_VS_RENT_VERDICT_LABELS,
+} from "./constants";
 import type {
+	BenchmarkBand,
 	BuyVsRentInsight,
 	BuyVsRentSummary,
 	BuyVsRentVerdict,
@@ -45,6 +49,14 @@ function buildStory({
 function buildDecisionNote(
 	summary: Omit<BuyVsRentSummary, "insights" | "story" | "decisionNote">,
 ) {
+	if (
+		summary.emiToIncomeBand === "risky" ||
+		summary.ageTenureBand === "risky" ||
+		summary.priceToIncomeBand === "risky"
+	) {
+		return "The wealth outcome may look acceptable, but affordability signals are stretched. De-risk your plan before committing.";
+	}
+
 	if (summary.verdict === "buy") {
 		return "This is one of the clearer cases where buying can make sense: the stay length is long enough for equity to outrun rent savings.";
 	}
@@ -60,6 +72,18 @@ function buildDecisionNote(
 	return "This is a genuine judgement call. If family roots and housing certainty matter more, buying is defensible; if flexibility matters more, renting stays cleaner.";
 }
 
+function getBandTone(band: BenchmarkBand) {
+	if (band === "good") return "positive" as const;
+	if (band === "watch") return "neutral" as const;
+	return "caution" as const;
+}
+
+function getBandLabel(band: BenchmarkBand) {
+	if (band === "good") return "Good";
+	if (band === "watch") return "Watch";
+	return "Risky";
+}
+
 export function buildBuyVsRentInsights({
 	verdict,
 	financialGap,
@@ -71,10 +95,17 @@ export function buildBuyVsRentInsights({
 	firstYearRentMonthlyOutgo,
 	finalHomeEquity,
 	finalRentCorpus,
-	totalBuyTaxBenefit,
-	totalRentTaxBenefit,
+	monthlyTakeHomeOldRegime,
+	monthlyTakeHomeNewRegime,
+	recommendedTaxRegime,
+	recommendedTaxRegimeNote,
 	buyStressRatio,
 	rentStressRatio,
+	priceToIncomeRatio,
+	priceToIncomeBand,
+	emiToIncomeRatio,
+	emiToIncomeBand,
+	affordabilityBenchmarks,
 }: {
 	verdict: BuyVsRentVerdict;
 	financialGap: number;
@@ -86,10 +117,17 @@ export function buildBuyVsRentInsights({
 	firstYearRentMonthlyOutgo: number;
 	finalHomeEquity: number;
 	finalRentCorpus: number;
-	totalBuyTaxBenefit: number;
-	totalRentTaxBenefit: number;
+	monthlyTakeHomeOldRegime: number | null;
+	monthlyTakeHomeNewRegime: number | null;
+	recommendedTaxRegime: "new" | "old" | null;
+	recommendedTaxRegimeNote: string;
 	buyStressRatio: number | null;
 	rentStressRatio: number | null;
+	priceToIncomeRatio: number;
+	priceToIncomeBand: BenchmarkBand;
+	emiToIncomeRatio: number | null;
+	emiToIncomeBand: BenchmarkBand | null;
+	affordabilityBenchmarks: BuyVsRentSummary["affordabilityBenchmarks"];
 }): BuyVsRentInsight[] {
 	const insights: BuyVsRentInsight[] = [
 		{
@@ -130,6 +168,12 @@ export function buildBuyVsRentInsights({
 			description: `By year ${horizonYears}, the buyer ends with home equity and the renter ends with an investment corpus plus refundable deposit.`,
 			tone: finalHomeEquity >= finalRentCorpus ? "positive" : "neutral",
 		},
+		{
+			title: "Income benchmark",
+			value: `${priceToIncomeRatio.toFixed(1)}x`,
+			description: `Home price is ${priceToIncomeRatio.toFixed(1)} times annual income. Band: ${getBandLabel(priceToIncomeBand)}.`,
+			tone: getBandTone(priceToIncomeBand),
+		},
 	];
 
 	if (breakEvenYear) {
@@ -141,21 +185,58 @@ export function buildBuyVsRentInsights({
 		});
 	}
 
-	if (totalBuyTaxBenefit > 0 || totalRentTaxBenefit > 0) {
+	if (monthlyTakeHomeOldRegime !== null || monthlyTakeHomeNewRegime !== null) {
+		const regimeLabel = recommendedTaxRegime
+			? recommendedTaxRegime.toUpperCase()
+			: "N/A";
 		insights.push({
-			title: "Tax effect",
-			value: `${formatCurrency(totalBuyTaxBenefit)} vs ${formatCurrency(totalRentTaxBenefit)}`,
-			description: `Tax effects can materially change close calls. This tool treats them as annual cash savings that stay with the cheaper path.`,
-			tone: totalBuyTaxBenefit >= totalRentTaxBenefit ? "positive" : "neutral",
+			title: "Estimated take-home",
+			value: `${formatCurrency(monthlyTakeHomeNewRegime ?? 0)} (new) vs ${formatCurrency(monthlyTakeHomeOldRegime ?? 0)} (old)`,
+			description: `${recommendedTaxRegimeNote} Recommended affordability regime: ${regimeLabel}.`,
+			tone: "neutral",
 		});
 	}
 
 	if (buyStressRatio !== null && rentStressRatio !== null) {
+		const buyTone =
+			buyStressRatio > BUY_VS_RENT_BENCHMARKS.emiToIncome.watchMax
+				? "caution"
+				: buyStressRatio > BUY_VS_RENT_BENCHMARKS.emiToIncome.softWarning
+					? "neutral"
+					: "positive";
+
 		insights.push({
 			title: "Stress test",
 			value: `${(buyStressRatio * 100).toFixed(0)}% vs ${(rentStressRatio * 100).toFixed(0)}%`,
-			description: `This compares first-year housing outgo against your monthly take-home pay. Lower is safer for real life, not just spreadsheets.`,
-			tone: buyStressRatio <= rentStressRatio ? "positive" : "caution",
+			description: `This compares first-year housing outgo against estimated monthly take-home. Lower is safer for real life, not just spreadsheets.`,
+			tone: buyStressRatio <= rentStressRatio ? ("positive" as const) : buyTone,
+		});
+	}
+
+	if (emiToIncomeRatio !== null && emiToIncomeBand !== null) {
+		insights.push({
+			title: "EMI affordability band",
+			value: `${(emiToIncomeRatio * 100).toFixed(0)}% (${getBandLabel(emiToIncomeBand)})`,
+			description:
+				"This uses EMI divided by estimated monthly take-home to highlight affordability pressure.",
+			tone: getBandTone(emiToIncomeBand),
+		});
+	}
+
+	if (affordabilityBenchmarks.length > 0) {
+		const riskyCount = affordabilityBenchmarks.filter(
+			(benchmark) => benchmark.band === "risky",
+		).length;
+		const watchCount = affordabilityBenchmarks.filter(
+			(benchmark) => benchmark.band === "watch",
+		).length;
+		insights.push({
+			title: "Benchmark summary",
+			value: `${riskyCount} risky · ${watchCount} watch`,
+			description:
+				"Use benchmark flags as guardrails; they complement the net-worth verdict, not replace it.",
+			tone:
+				riskyCount > 0 ? "caution" : watchCount > 0 ? "neutral" : "positive",
 		});
 	}
 

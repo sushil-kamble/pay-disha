@@ -17,9 +17,9 @@ export const DEFAULT_BUY_VS_RENT_INPUTS: BuyVsRentInputs = {
 	saleCostPct: 2,
 	rentDepositMonths: 3,
 	rentBrokerageMonths: 1,
-	annualBuyTaxBenefit: 0,
-	annualRentTaxBenefit: 0,
-	monthlyTakeHomePay: null,
+	annualCtcLakhs: 18,
+	ageYears: 30,
+	salaryGrowthPct: 8,
 	startYear: new Date().getFullYear(),
 };
 
@@ -56,10 +56,28 @@ export const BUY_VS_RENT_LIMITS = {
 	maxDepositMonths: 24,
 	minBrokerageMonths: 0,
 	maxBrokerageMonths: 3,
-	minAnnualTaxBenefit: 0,
-	maxAnnualTaxBenefit: 1000000,
-	minMonthlyTakeHomePay: 0,
-	maxMonthlyTakeHomePay: 1000000,
+	minAnnualCtcLakhs: 3,
+	maxAnnualCtcLakhs: 500,
+	minAgeYears: 21,
+	maxAgeYears: 65,
+	minSalaryGrowthPct: 0,
+	maxSalaryGrowthPct: 20,
+} as const;
+
+export const BUY_VS_RENT_BENCHMARKS = {
+	priceToIncome: {
+		goodMax: 4.5,
+		watchMax: 6.5,
+	},
+	emiToIncome: {
+		goodMax: 0.3,
+		watchMax: 0.4,
+		softWarning: 0.35,
+	},
+	ageTenure: {
+		goodMaxLoanEndAge: 50,
+		watchMaxLoanEndAge: 60,
+	},
 } as const;
 
 export const BUY_VS_RENT_SCENARIO_OFFSETS = {

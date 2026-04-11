@@ -1,4 +1,8 @@
+import { calculate as calculateInHand } from "#/tools/inhand-salary/calculator";
+import { DEFAULT_PF_MONTHLY } from "#/tools/inhand-salary/constants";
+import type { TaxRegime } from "#/tools/inhand-salary/types";
 import {
+	BUY_VS_RENT_BENCHMARKS,
 	BUY_VS_RENT_LIMITS,
 	BUY_VS_RENT_SCENARIO_OFFSETS,
 	DEFAULT_BUY_VS_RENT_INPUTS,
@@ -9,12 +13,15 @@ import {
 	formatCurrency,
 } from "./insights";
 import type {
+	AffordabilityBenchmark,
+	BenchmarkBand,
 	BuyVsRentInputs,
 	BuyVsRentPoint,
 	BuyVsRentResult,
 	BuyVsRentScenarioSummary,
 	BuyVsRentSummary,
 	BuyVsRentVerdict,
+	RecommendedTaxRegime,
 	ScenarioLabel,
 } from "./types";
 
@@ -59,6 +66,88 @@ function scaleToRealValue(
 ) {
 	if (years <= 0 || inflationRatePct <= 0) return value;
 	return value / (1 + inflationRatePct / 100) ** years;
+}
+
+interface TakeHomeByRegime {
+	oldRegime: number | null;
+	newRegime: number | null;
+}
+
+function classifyBand(
+	value: number,
+	thresholds: { goodMax: number; watchMax: number },
+): BenchmarkBand {
+	if (value <= thresholds.goodMax) return "good";
+	if (value <= thresholds.watchMax) return "watch";
+	return "risky";
+}
+
+function estimatedMonthlyTakeHome(
+	annualCtcLakhs: number,
+	regime: TaxRegime,
+): number | null {
+	if (annualCtcLakhs <= 0) return null;
+	const result = calculateInHand(annualCtcLakhs, DEFAULT_PF_MONTHLY, regime, 0);
+	if (result) return result.inHandMonthly;
+	return (annualCtcLakhs * 100000 * 0.72) / 12;
+}
+
+function calculateTakeHomeByRegime(annualCtcLakhs: number): TakeHomeByRegime {
+	return {
+		oldRegime: estimatedMonthlyTakeHome(annualCtcLakhs, "old"),
+		newRegime: estimatedMonthlyTakeHome(annualCtcLakhs, "new"),
+	};
+}
+
+function getRecommendedTaxRegime(
+	takeHomeByRegime: TakeHomeByRegime,
+): RecommendedTaxRegime | null {
+	if (
+		takeHomeByRegime.oldRegime === null &&
+		takeHomeByRegime.newRegime === null
+	) {
+		return null;
+	}
+
+	if (takeHomeByRegime.oldRegime === null) return "new";
+	if (takeHomeByRegime.newRegime === null) return "old";
+
+	// Use the lower estimate so affordability checks stay conservative.
+	return takeHomeByRegime.oldRegime <= takeHomeByRegime.newRegime
+		? "old"
+		: "new";
+}
+
+function getRecommendedTakeHome(
+	takeHomeByRegime: TakeHomeByRegime,
+	recommendedTaxRegime: RecommendedTaxRegime | null,
+) {
+	if (recommendedTaxRegime === "old") return takeHomeByRegime.oldRegime;
+	if (recommendedTaxRegime === "new") return takeHomeByRegime.newRegime;
+	return null;
+}
+
+function getTaxRegimeRecommendationNote({
+	recommendedTaxRegime,
+	oldRegimeMonthlyTakeHome,
+	newRegimeMonthlyTakeHome,
+}: {
+	recommendedTaxRegime: RecommendedTaxRegime | null;
+	oldRegimeMonthlyTakeHome: number | null;
+	newRegimeMonthlyTakeHome: number | null;
+}) {
+	if (!recommendedTaxRegime) {
+		return "We could not estimate take-home accurately from the provided inputs.";
+	}
+
+	if (oldRegimeMonthlyTakeHome === null || newRegimeMonthlyTakeHome === null) {
+		return `Using ${recommendedTaxRegime} regime estimate for affordability because only one regime estimate was available.`;
+	}
+
+	const betterRegime =
+		oldRegimeMonthlyTakeHome > newRegimeMonthlyTakeHome ? "old" : "new";
+
+	return `Estimated take-home is ${formatCurrency(newRegimeMonthlyTakeHome)} (new) vs ${formatCurrency(oldRegimeMonthlyTakeHome)} (old). We use ${recommendedTaxRegime} for affordability to stay conservative; ${betterRegime} may still be better in your real tax filing.`;
 }
 
 function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
@@ -149,25 +238,23 @@ function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
 			BUY_VS_RENT_LIMITS.minBrokerageMonths,
 			BUY_VS_RENT_LIMITS.maxBrokerageMonths,
 		),
-		annualBuyTaxBenefit: clamp(
-			merged.annualBuyTaxBenefit,
-			BUY_VS_RENT_LIMITS.minAnnualTaxBenefit,
-			BUY_VS_RENT_LIMITS.maxAnnualTaxBenefit,
+		annualCtcLakhs: clamp(
+			merged.annualCtcLakhs,
+			BUY_VS_RENT_LIMITS.minAnnualCtcLakhs,
+			BUY_VS_RENT_LIMITS.maxAnnualCtcLakhs,
 		),
-		annualRentTaxBenefit: clamp(
-			merged.annualRentTaxBenefit,
-			BUY_VS_RENT_LIMITS.minAnnualTaxBenefit,
-			BUY_VS_RENT_LIMITS.maxAnnualTaxBenefit,
+		ageYears: Math.round(
+			clamp(
+				merged.ageYears,
+				BUY_VS_RENT_LIMITS.minAgeYears,
+				BUY_VS_RENT_LIMITS.maxAgeYears,
+			),
 		),
-		monthlyTakeHomePay:
-			merged.monthlyTakeHomePay === null ||
-			merged.monthlyTakeHomePay === undefined
-				? null
-				: clamp(
-						merged.monthlyTakeHomePay,
-						BUY_VS_RENT_LIMITS.minMonthlyTakeHomePay,
-						BUY_VS_RENT_LIMITS.maxMonthlyTakeHomePay,
-					),
+		salaryGrowthPct: clamp(
+			merged.salaryGrowthPct,
+			BUY_VS_RENT_LIMITS.minSalaryGrowthPct,
+			BUY_VS_RENT_LIMITS.maxSalaryGrowthPct,
+		),
 		startYear: merged.startYear,
 	};
 }
@@ -199,6 +286,51 @@ function getConfidence(
 	return "low" as const;
 }
 
+function buildAffordabilityBenchmarks({
+	priceToIncomeRatio,
+	priceToIncomeBand,
+	emiToIncomeRatio,
+	emiToIncomeBand,
+	loanEndAge,
+	ageTenureBand,
+}: {
+	priceToIncomeRatio: number;
+	priceToIncomeBand: BenchmarkBand;
+	emiToIncomeRatio: number | null;
+	emiToIncomeBand: BenchmarkBand | null;
+	loanEndAge: number;
+	ageTenureBand: BenchmarkBand;
+}): AffordabilityBenchmark[] {
+	const benchmarks: AffordabilityBenchmark[] = [
+		{
+			label: "Home price to annual income",
+			value: `${priceToIncomeRatio.toFixed(1)}x`,
+			band: priceToIncomeBand,
+			description:
+				"Lower multiples are usually easier to carry without sacrificing long-term savings.",
+		},
+		{
+			label: "Age and loan-tenure fit",
+			value: `Loan ends around age ${loanEndAge}`,
+			band: ageTenureBand,
+			description:
+				"A shorter tenure relative to working years reduces repayment pressure later in life.",
+		},
+	];
+
+	if (emiToIncomeRatio !== null && emiToIncomeBand !== null) {
+		benchmarks.splice(1, 0, {
+			label: "EMI to monthly take-home",
+			value: `${(emiToIncomeRatio * 100).toFixed(0)}%`,
+			band: emiToIncomeBand,
+			description:
+				"This uses your estimated monthly take-home and is a practical affordability stress check.",
+		});
+	}
+
+	return benchmarks;
+}
+
 function buildReasons({
 	verdict,
 	upfrontGap,
@@ -208,8 +340,9 @@ function buildReasons({
 	stayYears,
 	finalHomeEquity,
 	finalRentCorpus,
-	totalBuyTaxBenefit,
-	totalRentTaxBenefit,
+	priceToIncomeBand,
+	emiToIncomeBand,
+	ageTenureBand,
 }: {
 	verdict: BuyVsRentVerdict;
 	upfrontGap: number;
@@ -219,8 +352,9 @@ function buildReasons({
 	stayYears: number;
 	finalHomeEquity: number;
 	finalRentCorpus: number;
-	totalBuyTaxBenefit: number;
-	totalRentTaxBenefit: number;
+	priceToIncomeBand: BenchmarkBand;
+	emiToIncomeBand: BenchmarkBand | null;
+	ageTenureBand: BenchmarkBand;
 }) {
 	const reasons: string[] = [];
 
@@ -260,9 +394,13 @@ function buildReasons({
 		);
 	}
 
-	if (totalBuyTaxBenefit > 0 || totalRentTaxBenefit > 0) {
+	if (
+		priceToIncomeBand === "risky" ||
+		emiToIncomeBand === "risky" ||
+		ageTenureBand === "risky"
+	) {
 		reasons.push(
-			`Tax benefits add ${formatCurrency(totalBuyTaxBenefit)} on the buy side versus ${formatCurrency(totalRentTaxBenefit)} on the rent side.`,
+			"Affordability benchmarks flag this setup as stretched, so cash-flow resilience matters more than optimistic assumptions.",
 		);
 	}
 
@@ -325,13 +463,18 @@ function calculateBuyVsRentInternal(
 		inputs.loanTenureYears,
 	);
 
+	const firstYearTakeHomeByRegime = calculateTakeHomeByRegime(
+		inputs.annualCtcLakhs,
+	);
+	const recommendedTaxRegime = getRecommendedTaxRegime(
+		firstYearTakeHomeByRegime,
+	);
+
 	let outstandingLoan = loanPrincipal;
 	let propertyValue = propertyPrice;
 	let currentMonthlyRent = inputs.monthlyRent;
 	let buyCorpus = Math.max(0, upfrontRentCash - upfrontBuyCash);
 	let rentCorpus = Math.max(0, upfrontBuyCash - upfrontRentCash);
-	let cumulativeBuyTaxBenefit = 0;
-	let cumulativeRentTaxBenefit = 0;
 
 	const points: BuyVsRentPoint[] = [];
 
@@ -343,6 +486,9 @@ function calculateBuyVsRentInternal(
 		annualInterestPaid,
 		annualMaintenancePaid,
 		annualRentPaid,
+		monthlyTakeHomeOldRegime,
+		monthlyTakeHomeNewRegime,
+		monthlyTakeHomeRecommended,
 	}: {
 		yearOffset: number;
 		buyAnnualOutgo: number;
@@ -351,6 +497,9 @@ function calculateBuyVsRentInternal(
 		annualInterestPaid: number;
 		annualMaintenancePaid: number;
 		annualRentPaid: number;
+		monthlyTakeHomeOldRegime: number | null;
+		monthlyTakeHomeNewRegime: number | null;
+		monthlyTakeHomeRecommended: number | null;
 	}) {
 		const saleableHomeValue = propertyValue * (1 - inputs.saleCostPct / 100);
 		const buyHomeEquity = Math.max(0, saleableHomeValue - outstandingLoan);
@@ -391,19 +540,23 @@ function calculateBuyVsRentInternal(
 			annualInterestPaid,
 			annualMaintenancePaid,
 			annualRentPaid,
-			cumulativeBuyTaxBenefit,
-			cumulativeRentTaxBenefit,
+			monthlyTakeHomeOldRegime,
+			monthlyTakeHomeNewRegime,
+			monthlyTakeHomeRecommended,
 			buyStressRatio:
-				inputs.monthlyTakeHomePay && inputs.monthlyTakeHomePay > 0
-					? buyAnnualOutgo / 12 / inputs.monthlyTakeHomePay
+				monthlyTakeHomeRecommended && monthlyTakeHomeRecommended > 0
+					? buyAnnualOutgo / 12 / monthlyTakeHomeRecommended
 					: null,
 			rentStressRatio:
-				inputs.monthlyTakeHomePay && inputs.monthlyTakeHomePay > 0
-					? rentAnnualOutgo / 12 / inputs.monthlyTakeHomePay
+				monthlyTakeHomeRecommended && monthlyTakeHomeRecommended > 0
+					? rentAnnualOutgo / 12 / monthlyTakeHomeRecommended
 					: null,
 		});
 	}
 
+	const yearZeroTakeHomeByRegime = calculateTakeHomeByRegime(
+		inputs.annualCtcLakhs,
+	);
 	createPoint({
 		yearOffset: 0,
 		buyAnnualOutgo: 0,
@@ -412,6 +565,12 @@ function calculateBuyVsRentInternal(
 		annualInterestPaid: 0,
 		annualMaintenancePaid: 0,
 		annualRentPaid: 0,
+		monthlyTakeHomeOldRegime: yearZeroTakeHomeByRegime.oldRegime,
+		monthlyTakeHomeNewRegime: yearZeroTakeHomeByRegime.newRegime,
+		monthlyTakeHomeRecommended: getRecommendedTakeHome(
+			yearZeroTakeHomeByRegime,
+			recommendedTaxRegime,
+		),
 	});
 
 	for (let yearIndex = 1; yearIndex <= inputs.stayYears; yearIndex += 1) {
@@ -421,6 +580,15 @@ function calculateBuyVsRentInternal(
 		let annualInterestPaid = 0;
 		let annualMaintenancePaid = 0;
 		let annualRentPaid = 0;
+
+		const annualCtcForYear =
+			inputs.annualCtcLakhs *
+			(1 + inputs.salaryGrowthPct / 100) ** (yearIndex - 1);
+		const takeHomeByRegime = calculateTakeHomeByRegime(annualCtcForYear);
+		const monthlyTakeHomeRecommended = getRecommendedTakeHome(
+			takeHomeByRegime,
+			recommendedTaxRegime,
+		);
 
 		const monthlyMaintenance =
 			(propertyValue * (inputs.annualMaintenancePct / 100) +
@@ -450,16 +618,8 @@ function calculateBuyVsRentInternal(
 				outstandingLoan = Math.max(0, outstandingLoan - monthlyPrincipalPaid);
 			}
 
-			const monthlyBuyTaxBenefit = inputs.annualBuyTaxBenefit / 12;
-			const monthlyRentTaxBenefit = inputs.annualRentTaxBenefit / 12;
-			const monthlyBuyOutgo = Math.max(
-				0,
-				monthlyEmi + monthlyMaintenance - monthlyBuyTaxBenefit,
-			);
-			const monthlyRentOutgo = Math.max(
-				0,
-				currentMonthlyRent - monthlyRentTaxBenefit,
-			);
+			const monthlyBuyOutgo = Math.max(0, monthlyEmi + monthlyMaintenance);
+			const monthlyRentOutgo = Math.max(0, currentMonthlyRent);
 
 			buyAnnualOutgo += monthlyBuyOutgo;
 			rentAnnualOutgo += monthlyRentOutgo;
@@ -467,8 +627,6 @@ function calculateBuyVsRentInternal(
 			annualInterestPaid += monthlyInterestPaid;
 			annualMaintenancePaid += monthlyMaintenance;
 			annualRentPaid += currentMonthlyRent;
-			cumulativeBuyTaxBenefit += monthlyBuyTaxBenefit;
-			cumulativeRentTaxBenefit += monthlyRentTaxBenefit;
 
 			const monthlyGap = monthlyBuyOutgo - monthlyRentOutgo;
 			if (monthlyGap > 0) {
@@ -487,6 +645,9 @@ function calculateBuyVsRentInternal(
 			annualInterestPaid,
 			annualMaintenancePaid,
 			annualRentPaid,
+			monthlyTakeHomeOldRegime: takeHomeByRegime.oldRegime,
+			monthlyTakeHomeNewRegime: takeHomeByRegime.newRegime,
+			monthlyTakeHomeRecommended,
 		});
 		currentMonthlyRent *= 1 + inputs.rentIncreasePct / 100;
 	}
@@ -524,7 +685,45 @@ function calculateBuyVsRentInternal(
 				],
 	);
 
-	const baseSummary = {
+	const annualIncomeRupees = toRupeesFromLakhs(inputs.annualCtcLakhs);
+	const priceToIncomeRatio =
+		annualIncomeRupees > 0 ? propertyPrice / annualIncomeRupees : 0;
+	const priceToIncomeBand = classifyBand(
+		priceToIncomeRatio,
+		BUY_VS_RENT_BENCHMARKS.priceToIncome,
+	);
+	const firstYearMonthlyEmi =
+		(firstYearPoint.annualPrincipalPaid + firstYearPoint.annualInterestPaid) /
+		12;
+	const emiToIncomeRatio =
+		firstYearPoint.monthlyTakeHomeRecommended &&
+		firstYearPoint.monthlyTakeHomeRecommended > 0
+			? firstYearMonthlyEmi / firstYearPoint.monthlyTakeHomeRecommended
+			: null;
+	const emiToIncomeBand =
+		emiToIncomeRatio === null
+			? null
+			: classifyBand(emiToIncomeRatio, BUY_VS_RENT_BENCHMARKS.emiToIncome);
+	const loanEndAge = inputs.ageYears + inputs.loanTenureYears;
+	const ageTenureBand =
+		loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.goodMaxLoanEndAge
+			? ("good" as const)
+			: loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.watchMaxLoanEndAge
+				? ("watch" as const)
+				: ("risky" as const);
+	const affordabilityBenchmarks = buildAffordabilityBenchmarks({
+		priceToIncomeRatio,
+		priceToIncomeBand,
+		emiToIncomeRatio,
+		emiToIncomeBand,
+		loanEndAge,
+		ageTenureBand,
+	});
+
+	const baseSummary: Omit<
+		BuyVsRentSummary,
+		"insights" | "story" | "decisionNote"
+	> = {
 		verdict,
 		confidence,
 		horizonYears: inputs.stayYears,
@@ -544,10 +743,23 @@ function calculateBuyVsRentInternal(
 		finalYearRentMonthlyOutgo: finalPoint.rentMonthlyOutgo,
 		finalHomeEquity: finalPoint.buyHomeEquity,
 		finalRentCorpus: finalPoint.rentNetWorth,
-		totalBuyTaxBenefit: cumulativeBuyTaxBenefit,
-		totalRentTaxBenefit: cumulativeRentTaxBenefit,
-		buyStressRatio: finalPoint.buyStressRatio,
-		rentStressRatio: finalPoint.rentStressRatio,
+		monthlyTakeHomeOldRegime: firstYearPoint.monthlyTakeHomeOldRegime,
+		monthlyTakeHomeNewRegime: firstYearPoint.monthlyTakeHomeNewRegime,
+		monthlyTakeHomeRecommended: firstYearPoint.monthlyTakeHomeRecommended,
+		recommendedTaxRegime,
+		recommendedTaxRegimeNote: getTaxRegimeRecommendationNote({
+			recommendedTaxRegime,
+			oldRegimeMonthlyTakeHome: firstYearPoint.monthlyTakeHomeOldRegime,
+			newRegimeMonthlyTakeHome: firstYearPoint.monthlyTakeHomeNewRegime,
+		}),
+		buyStressRatio: firstYearPoint.buyStressRatio,
+		rentStressRatio: firstYearPoint.rentStressRatio,
+		priceToIncomeRatio,
+		priceToIncomeBand,
+		emiToIncomeRatio,
+		emiToIncomeBand,
+		ageTenureBand,
+		affordabilityBenchmarks,
 		buyBecomesReasonableAfterYear,
 		reasons: buildReasons({
 			verdict,
@@ -561,8 +773,9 @@ function calculateBuyVsRentInternal(
 			stayYears: inputs.stayYears,
 			finalHomeEquity: finalPoint.buyHomeEquity,
 			finalRentCorpus: finalPoint.rentNetWorth,
-			totalBuyTaxBenefit: cumulativeBuyTaxBenefit,
-			totalRentTaxBenefit: cumulativeRentTaxBenefit,
+			priceToIncomeBand,
+			emiToIncomeBand,
+			ageTenureBand,
 		}),
 		scenarios,
 	};
