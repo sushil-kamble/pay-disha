@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	calculateBuyVsRent,
 	calculateEmi,
+	formatCurrency,
 	normaliseInputs,
 } from "#/tools/buy-vs-rent/calculator";
 
@@ -18,7 +19,6 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 1,
 			monthlyRent: 500,
 			stayYears: 50,
-			annualMaintenancePct: 99,
 			annualCtcLakhs: 1,
 			ageYears: 90,
 			salaryGrowthPct: 40,
@@ -27,25 +27,20 @@ describe("buy vs rent calculator", () => {
 		expect(inputs.propertyPriceLakhs).toBeGreaterThanOrEqual(5);
 		expect(inputs.monthlyRent).toBeGreaterThanOrEqual(1000);
 		expect(inputs.stayYears).toBeLessThanOrEqual(30);
-		expect(inputs.annualMaintenancePct).toBeLessThanOrEqual(8);
 		expect(inputs.annualCtcLakhs).toBeGreaterThanOrEqual(3);
 		expect(inputs.ageYears).toBeLessThanOrEqual(65);
 		expect(inputs.salaryGrowthPct).toBeLessThanOrEqual(20);
 	});
 
-	it("favours renting when the horizon is short and investment returns are stronger", () => {
+	it("favours renting when the horizon is short", () => {
 		const result = calculateBuyVsRent({
 			propertyPriceLakhs: 120,
 			monthlyRent: 28000,
 			stayYears: 5,
-			downPaymentPct: 20,
+			downPaymentLakhs: 24,
 			homeLoanRatePct: 9,
 			loanTenureYears: 20,
-			propertyAppreciationPct: 4,
-			rentIncreasePct: 5,
-			investmentReturnPct: 11,
-			purchaseCostPct: 8,
-			saleCostPct: 2,
+			cityTier: "tier-1",
 		});
 
 		expect(result.summary.verdict).toBe("rent");
@@ -58,14 +53,10 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 70,
 			monthlyRent: 35000,
 			stayYears: 15,
-			downPaymentPct: 25,
+			downPaymentLakhs: 17.5,
 			homeLoanRatePct: 8,
 			loanTenureYears: 20,
-			propertyAppreciationPct: 7.5,
-			rentIncreasePct: 6,
-			investmentReturnPct: 8,
-			purchaseCostPct: 6,
-			saleCostPct: 1.5,
+			cityTier: "tier-2",
 		});
 
 		expect(result.summary.verdict).toBe("buy");
@@ -78,9 +69,6 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 85,
 			monthlyRent: 30000,
 			stayYears: 9,
-			propertyAppreciationPct: 6,
-			investmentReturnPct: 9.5,
-			purchaseCostPct: 7,
 			annualCtcLakhs: 30,
 			salaryGrowthPct: 8,
 		});
@@ -106,9 +94,6 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 85,
 			monthlyRent: 30000,
 			stayYears: 9,
-			propertyAppreciationPct: 6,
-			investmentReturnPct: 9.5,
-			purchaseCostPct: 7,
 			annualCtcLakhs: 20,
 			salaryGrowthPct: 0,
 		});
@@ -117,9 +102,6 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 85,
 			monthlyRent: 30000,
 			stayYears: 9,
-			propertyAppreciationPct: 6,
-			investmentReturnPct: 9.5,
-			purchaseCostPct: 7,
 			annualCtcLakhs: 20,
 			salaryGrowthPct: 15,
 		});
@@ -129,6 +111,16 @@ describe("buy vs rent calculator", () => {
 		).toBeLessThan(
 			noGrowth.points.at(-1)?.buyStressRatio ?? Number.POSITIVE_INFINITY,
 		);
+		expect(
+			highGrowth.summary.finalYearBuyStressRatio ?? Number.POSITIVE_INFINITY,
+		).toBeLessThan(
+			noGrowth.summary.finalYearBuyStressRatio ?? Number.POSITIVE_INFINITY,
+		);
+		expect(
+			highGrowth.summary.finalYearMonthlyTakeHomeRecommended ?? 0,
+		).toBeGreaterThan(
+			noGrowth.summary.finalYearMonthlyTakeHomeRecommended ?? 0,
+		);
 	});
 
 	it("classifies affordability benchmarks for stretched setups", () => {
@@ -136,7 +128,7 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 260,
 			monthlyRent: 45000,
 			stayYears: 10,
-			downPaymentPct: 15,
+			downPaymentLakhs: 39,
 			homeLoanRatePct: 9.5,
 			annualCtcLakhs: 20,
 			ageYears: 46,
@@ -145,7 +137,7 @@ describe("buy vs rent calculator", () => {
 		expect(result.summary.priceToIncomeBand).toBe("risky");
 		expect(result.summary.affordabilityBenchmarks.length).toBeGreaterThan(0);
 		expect(result.summary.emiToIncomeBand).not.toBeNull();
-		expect(result.summary.ageTenureBand).toBe("risky");
+		expect(result.summary.ageTenureBand).toBe("watch");
 	});
 
 	it("provides benchmark signals for balanced setups", () => {
@@ -153,7 +145,7 @@ describe("buy vs rent calculator", () => {
 			propertyPriceLakhs: 70,
 			monthlyRent: 30000,
 			stayYears: 8,
-			downPaymentPct: 25,
+			downPaymentLakhs: 17.5,
 			homeLoanRatePct: 8.5,
 			annualCtcLakhs: 28,
 			ageYears: 30,
@@ -172,5 +164,189 @@ describe("buy vs rent calculator", () => {
 		expect(result.points).toHaveLength(4);
 		expect(result.points[0].label).toBe("Now");
 		expect(result.points.at(-1)?.label).toBe("Year 3");
+	});
+
+	it("caps down payment at the property price", () => {
+		const inputs = normaliseInputs({
+			propertyPriceLakhs: 80,
+			downPaymentLakhs: 120,
+		});
+
+		expect(inputs.downPaymentLakhs).toBe(80);
+	});
+
+	it("uses city tier to adjust rent friction and carrying costs", () => {
+		const tierOne = calculateBuyVsRent({
+			propertyPriceLakhs: 85,
+			monthlyRent: 30000,
+			stayYears: 8,
+			cityTier: "tier-1",
+		});
+		const tierThree = calculateBuyVsRent({
+			propertyPriceLakhs: 85,
+			monthlyRent: 30000,
+			stayYears: 8,
+			cityTier: "tier-3",
+		});
+
+		expect(tierOne.summary.upfrontRentCash).toBeGreaterThan(
+			tierThree.summary.upfrontRentCash,
+		);
+		expect(tierOne.summary.firstYearBuyMonthlyOutgo).toBeGreaterThan(
+			tierThree.summary.firstYearBuyMonthlyOutgo,
+		);
+		expect(tierOne.summary.finalYearRentMonthlyOutgo).toBeGreaterThan(
+			tierThree.summary.finalYearRentMonthlyOutgo,
+		);
+	});
+
+	it("gives tier 2 cities a modest housing growth edge over tier 3", () => {
+		const tierTwo = calculateBuyVsRent({
+			propertyPriceLakhs: 85,
+			monthlyRent: 30000,
+			stayYears: 10,
+			cityTier: "tier-2",
+		});
+		const tierThree = calculateBuyVsRent({
+			propertyPriceLakhs: 85,
+			monthlyRent: 30000,
+			stayYears: 10,
+			cityTier: "tier-3",
+		});
+
+		expect(tierTwo.summary.finalHomeEquity).toBeGreaterThan(
+			tierThree.summary.finalHomeEquity,
+		);
+	});
+
+	it("keeps buyer ending value aligned with the actual wealth verdict", () => {
+		const result = calculateBuyVsRent({
+			propertyPriceLakhs: 30,
+			monthlyRent: 20000,
+			stayYears: 8,
+			downPaymentLakhs: 20,
+			loanTenureYears: 15,
+			cityTier: "tier-1",
+		});
+
+		expect(result.summary.verdict).toBe("buy");
+		expect(result.summary.buyNetWorth).toBeGreaterThan(
+			result.summary.rentNetWorth,
+		);
+		expect(result.summary.finalBuyInvestmentCorpus).toBeGreaterThan(0);
+		expect(result.summary.buyNetWorth).toBeCloseTo(
+			result.summary.finalHomeEquity + result.summary.finalBuyInvestmentCorpus,
+			0,
+		);
+	});
+
+	it("shows negative equity when sale proceeds would not clear the loan", () => {
+		const result = calculateBuyVsRent({
+			propertyPriceLakhs: 100,
+			downPaymentLakhs: 0,
+			stayYears: 1,
+			cityTier: "tier-3",
+		});
+
+		expect(result.points[0].buyHomeEquity).toBeLessThan(0);
+		expect(result.points[0].buyNetWorth).toBeLessThan(0);
+	});
+
+	it("does not apply the age-repayment benchmark to full-cash purchases", () => {
+		const result = calculateBuyVsRent({
+			propertyPriceLakhs: 50,
+			downPaymentLakhs: 50,
+			stayYears: 5,
+			loanTenureYears: 20,
+			ageYears: 45,
+		});
+
+		expect(result.summary.ageTenureBand).toBeNull();
+		expect(
+			result.summary.affordabilityBenchmarks.some((benchmark) =>
+				benchmark.label.includes("Age and repayment"),
+			),
+		).toBe(false);
+	});
+
+	it("keeps tier 1 at least as buy-friendly as tier 2 for the same home and rent inputs", () => {
+		const sharedInputs = {
+			propertyPriceLakhs: 90,
+			monthlyRent: 30000,
+			stayYears: 8,
+			downPaymentLakhs: 18,
+			homeLoanRatePct: 8.75,
+			loanTenureYears: 20,
+			annualCtcLakhs: 18,
+			ageYears: 30,
+			salaryGrowthPct: 8,
+		};
+		const tierOne = calculateBuyVsRent({
+			...sharedInputs,
+			cityTier: "tier-1",
+		});
+		const tierTwo = calculateBuyVsRent({
+			...sharedInputs,
+			cityTier: "tier-2",
+		});
+		const tierThree = calculateBuyVsRent({
+			...sharedInputs,
+			cityTier: "tier-3",
+		});
+
+		expect(tierOne.summary.financialGap).toBeGreaterThan(
+			tierTwo.summary.financialGap,
+		);
+		expect(tierTwo.summary.financialGap).toBeGreaterThan(
+			tierThree.summary.financialGap,
+		);
+	});
+
+	it("reports a later break-even year even when the selected horizon still favors renting", () => {
+		const result = calculateBuyVsRent({
+			propertyPriceLakhs: 90,
+			monthlyRent: 30000,
+			stayYears: 8,
+			downPaymentLakhs: 18,
+			homeLoanRatePct: 8.75,
+			loanTenureYears: 20,
+			annualCtcLakhs: 18,
+			cityTier: "tier-1",
+			ageYears: 30,
+			salaryGrowthPct: 8,
+		});
+
+		expect(result.summary.verdict).toBe("rent");
+		expect(result.summary.breakEvenYear).not.toBeNull();
+		expect(result.summary.breakEvenYear).toBeGreaterThan(
+			result.summary.horizonYears,
+		);
+	});
+
+	it("keeps the upfront ask insight aligned with the upfront difference", () => {
+		const result = calculateBuyVsRent({
+			propertyPriceLakhs: 120,
+			monthlyRent: 45000,
+			stayYears: 20,
+			downPaymentLakhs: 24,
+			homeLoanRatePct: 8.5,
+			loanTenureYears: 20,
+			cityTier: "tier-1",
+		});
+
+		const upfrontAskInsight = result.summary.insights.find(
+			(insight) => insight.title === "Upfront ask",
+		);
+
+		expect(upfrontAskInsight).toBeDefined();
+		expect(upfrontAskInsight?.value).toBe(
+			formatCurrency(Math.abs(result.summary.upfrontGap)),
+		);
+		expect(upfrontAskInsight?.description).toContain(
+			formatCurrency(result.summary.upfrontBuyCash),
+		);
+		expect(upfrontAskInsight?.description).toContain(
+			formatCurrency(result.summary.upfrontRentCash),
+		);
 	});
 });

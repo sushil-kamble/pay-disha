@@ -1,4 +1,9 @@
 export type BuyVsRentVerdict = "buy" | "rent" | "close-call";
+export type BuyVsRentCityTier = "tier-1" | "tier-2" | "tier-3";
+export type AffordabilityBenchmarkId =
+	| "price-to-income"
+	| "emi-to-income"
+	| "age-repayment-fit";
 
 export type InsightTone = "positive" | "neutral" | "caution";
 export type BenchmarkBand = "good" | "watch" | "risky";
@@ -13,11 +18,17 @@ export interface BuyVsRentInputs {
 	propertyPriceLakhs: number;
 	monthlyRent: number;
 	stayYears: number;
-	downPaymentPct: number;
+	downPaymentLakhs: number;
 	homeLoanRatePct: number;
 	loanTenureYears: number;
-	propertyAppreciationPct: number;
-	rentIncreasePct: number;
+	annualCtcLakhs: number;
+	cityTier: BuyVsRentCityTier;
+	ageYears: number;
+	salaryGrowthPct: number;
+	startYear: number;
+}
+
+export interface BuyVsRentMarketAssumptions {
 	investmentReturnPct: number;
 	inflationRatePct: number;
 	annualMaintenancePct: number;
@@ -26,10 +37,8 @@ export interface BuyVsRentInputs {
 	saleCostPct: number;
 	rentDepositMonths: number;
 	rentBrokerageMonths: number;
-	annualCtcLakhs: number;
-	ageYears: number;
-	salaryGrowthPct: number;
-	startYear: number;
+	propertyAppreciationPct: number;
+	rentIncreasePct: number;
 }
 
 export interface BuyVsRentPoint {
@@ -63,8 +72,10 @@ export interface BuyVsRentPoint {
 }
 
 export interface AffordabilityBenchmark {
+	id: AffordabilityBenchmarkId;
 	label: string;
 	value: string;
+	metricValue: number;
 	band: BenchmarkBand;
 	description: string;
 }
@@ -104,21 +115,24 @@ export interface BuyVsRentSummary {
 	finalYearBuyMonthlyOutgo: number;
 	finalYearRentMonthlyOutgo: number;
 	finalHomeEquity: number;
-	finalRentCorpus: number;
+	finalBuyInvestmentCorpus: number;
 	monthlyTakeHomeOldRegime: number | null;
 	monthlyTakeHomeNewRegime: number | null;
 	monthlyTakeHomeRecommended: number | null;
+	finalYearMonthlyTakeHomeRecommended: number | null;
 	recommendedTaxRegime: RecommendedTaxRegime | null;
 	recommendedTaxRegimeNote: string;
 	buyStressRatio: number | null;
 	rentStressRatio: number | null;
+	finalYearBuyStressRatio: number | null;
+	finalYearRentStressRatio: number | null;
 	priceToIncomeRatio: number;
 	priceToIncomeBand: BenchmarkBand;
 	emiToIncomeRatio: number | null;
 	emiToIncomeBand: BenchmarkBand | null;
-	ageTenureBand: BenchmarkBand;
+	ageTenureBand: BenchmarkBand | null;
 	affordabilityBenchmarks: AffordabilityBenchmark[];
-	buyBecomesReasonableAfterYear: number | null;
+	buyCatchUpYear: number | null;
 	reasons: string[];
 	decisionNote: string;
 	insights: BuyVsRentInsight[];

@@ -3,7 +3,9 @@ import { DEFAULT_PF_MONTHLY } from "#/tools/inhand-salary/constants";
 import type { TaxRegime } from "#/tools/inhand-salary/types";
 import {
 	BUY_VS_RENT_BENCHMARKS,
+	BUY_VS_RENT_CITY_TIER_ASSUMPTIONS,
 	BUY_VS_RENT_LIMITS,
+	BUY_VS_RENT_MARKET_ASSUMPTIONS,
 	BUY_VS_RENT_SCENARIO_OFFSETS,
 	DEFAULT_BUY_VS_RENT_INPUTS,
 } from "./constants";
@@ -15,7 +17,9 @@ import {
 import type {
 	AffordabilityBenchmark,
 	BenchmarkBand,
+	BuyVsRentCityTier,
 	BuyVsRentInputs,
+	BuyVsRentMarketAssumptions,
 	BuyVsRentPoint,
 	BuyVsRentResult,
 	BuyVsRentScenarioSummary,
@@ -35,6 +39,11 @@ function toRupeesFromLakhs(value: number) {
 
 function monthlyRate(annualRatePct: number) {
 	return (1 + annualRatePct / 100) ** (1 / 12) - 1;
+}
+
+function normaliseCityTier(value: BuyVsRentCityTier | string | undefined) {
+	if (value === "tier-2" || value === "tier-3") return value;
+	return "tier-1" as const;
 }
 
 function formatYearLabel(index: number) {
@@ -137,27 +146,30 @@ function getTaxRegimeRecommendationNote({
 	newRegimeMonthlyTakeHome: number | null;
 }) {
 	if (!recommendedTaxRegime) {
-		return "We could not estimate take-home accurately from the provided inputs.";
+		return "We could not estimate take-home from the provided inputs.";
 	}
 
 	if (oldRegimeMonthlyTakeHome === null || newRegimeMonthlyTakeHome === null) {
-		return `Using ${recommendedTaxRegime} regime estimate for affordability because only one regime estimate was available.`;
+		return `Using the ${recommendedTaxRegime.toUpperCase()} estimate for affordability.`;
 	}
 
-	const betterRegime =
-		oldRegimeMonthlyTakeHome > newRegimeMonthlyTakeHome ? "old" : "new";
-
-	return `Estimated take-home is ${formatCurrency(newRegimeMonthlyTakeHome)} (new) vs ${formatCurrency(oldRegimeMonthlyTakeHome)} (old). We use ${recommendedTaxRegime} for affordability to stay conservative; ${betterRegime} may still be better in your real tax filing.`;
+	return "Using the lower estimate for affordability.";
 }
 
 function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
 	const merged = { ...DEFAULT_BUY_VS_RENT_INPUTS, ...input };
+	const propertyPriceLakhs = clamp(
+		merged.propertyPriceLakhs,
+		BUY_VS_RENT_LIMITS.minPropertyPriceLakhs,
+		BUY_VS_RENT_LIMITS.maxPropertyPriceLakhs,
+	);
 
 	return {
-		propertyPriceLakhs: clamp(
-			merged.propertyPriceLakhs,
-			BUY_VS_RENT_LIMITS.minPropertyPriceLakhs,
-			BUY_VS_RENT_LIMITS.maxPropertyPriceLakhs,
+		propertyPriceLakhs,
+		downPaymentLakhs: clamp(
+			merged.downPaymentLakhs,
+			BUY_VS_RENT_LIMITS.minDownPaymentLakhs,
+			Math.min(propertyPriceLakhs, BUY_VS_RENT_LIMITS.maxDownPaymentLakhs),
 		),
 		monthlyRent: clamp(
 			merged.monthlyRent,
@@ -171,11 +183,6 @@ function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
 				BUY_VS_RENT_LIMITS.maxStayYears,
 			),
 		),
-		downPaymentPct: clamp(
-			merged.downPaymentPct,
-			BUY_VS_RENT_LIMITS.minDownPaymentPct,
-			BUY_VS_RENT_LIMITS.maxDownPaymentPct,
-		),
 		homeLoanRatePct: clamp(
 			merged.homeLoanRatePct,
 			BUY_VS_RENT_LIMITS.minInterestPct,
@@ -188,61 +195,12 @@ function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
 				BUY_VS_RENT_LIMITS.maxLoanTenureYears,
 			),
 		),
-		propertyAppreciationPct: clamp(
-			merged.propertyAppreciationPct,
-			BUY_VS_RENT_LIMITS.minAppreciationPct,
-			BUY_VS_RENT_LIMITS.maxAppreciationPct,
-		),
-		rentIncreasePct: clamp(
-			merged.rentIncreasePct,
-			BUY_VS_RENT_LIMITS.minRentIncreasePct,
-			BUY_VS_RENT_LIMITS.maxRentIncreasePct,
-		),
-		investmentReturnPct: clamp(
-			merged.investmentReturnPct,
-			BUY_VS_RENT_LIMITS.minInvestmentReturnPct,
-			BUY_VS_RENT_LIMITS.maxInvestmentReturnPct,
-		),
-		inflationRatePct: clamp(
-			merged.inflationRatePct,
-			BUY_VS_RENT_LIMITS.minInflationRatePct,
-			BUY_VS_RENT_LIMITS.maxInflationRatePct,
-		),
-		annualMaintenancePct: clamp(
-			merged.annualMaintenancePct,
-			BUY_VS_RENT_LIMITS.minAnnualMaintenancePct,
-			BUY_VS_RENT_LIMITS.maxAnnualMaintenancePct,
-		),
-		annualOwnerFixedCosts: clamp(
-			merged.annualOwnerFixedCosts,
-			BUY_VS_RENT_LIMITS.minAnnualOwnerFixedCosts,
-			BUY_VS_RENT_LIMITS.maxAnnualOwnerFixedCosts,
-		),
-		purchaseCostPct: clamp(
-			merged.purchaseCostPct,
-			BUY_VS_RENT_LIMITS.minPurchaseCostPct,
-			BUY_VS_RENT_LIMITS.maxPurchaseCostPct,
-		),
-		saleCostPct: clamp(
-			merged.saleCostPct,
-			BUY_VS_RENT_LIMITS.minSaleCostPct,
-			BUY_VS_RENT_LIMITS.maxSaleCostPct,
-		),
-		rentDepositMonths: clamp(
-			merged.rentDepositMonths,
-			BUY_VS_RENT_LIMITS.minDepositMonths,
-			BUY_VS_RENT_LIMITS.maxDepositMonths,
-		),
-		rentBrokerageMonths: clamp(
-			merged.rentBrokerageMonths,
-			BUY_VS_RENT_LIMITS.minBrokerageMonths,
-			BUY_VS_RENT_LIMITS.maxBrokerageMonths,
-		),
 		annualCtcLakhs: clamp(
 			merged.annualCtcLakhs,
 			BUY_VS_RENT_LIMITS.minAnnualCtcLakhs,
 			BUY_VS_RENT_LIMITS.maxAnnualCtcLakhs,
 		),
+		cityTier: normaliseCityTier(merged.cityTier),
 		ageYears: Math.round(
 			clamp(
 				merged.ageYears,
@@ -256,6 +214,70 @@ function normaliseInputs(input: Partial<BuyVsRentInputs>): BuyVsRentInputs {
 			BUY_VS_RENT_LIMITS.maxSalaryGrowthPct,
 		),
 		startYear: merged.startYear,
+	};
+}
+
+function normaliseMarketAssumptions(
+	cityTier: BuyVsRentCityTier,
+	input: Partial<BuyVsRentMarketAssumptions> = {},
+): BuyVsRentMarketAssumptions {
+	const merged = { ...BUY_VS_RENT_MARKET_ASSUMPTIONS, ...input };
+	const tierAssumptions = BUY_VS_RENT_CITY_TIER_ASSUMPTIONS[cityTier];
+
+	return {
+		investmentReturnPct: clamp(
+			merged.investmentReturnPct,
+			BUY_VS_RENT_LIMITS.minInvestmentReturnPct,
+			BUY_VS_RENT_LIMITS.maxInvestmentReturnPct,
+		),
+		inflationRatePct: clamp(
+			merged.inflationRatePct,
+			BUY_VS_RENT_LIMITS.minInflationRatePct,
+			BUY_VS_RENT_LIMITS.maxInflationRatePct,
+		),
+		annualMaintenancePct: clamp(
+			merged.annualMaintenancePct +
+				tierAssumptions.annualMaintenanceAdjustmentPct,
+			BUY_VS_RENT_LIMITS.minAnnualMaintenancePct,
+			BUY_VS_RENT_LIMITS.maxAnnualMaintenancePct,
+		),
+		annualOwnerFixedCosts: clamp(
+			merged.annualOwnerFixedCosts +
+				tierAssumptions.annualOwnerFixedCostsAdjustment,
+			BUY_VS_RENT_LIMITS.minAnnualOwnerFixedCosts,
+			BUY_VS_RENT_LIMITS.maxAnnualOwnerFixedCosts,
+		),
+		purchaseCostPct: clamp(
+			merged.purchaseCostPct,
+			BUY_VS_RENT_LIMITS.minPurchaseCostPct,
+			BUY_VS_RENT_LIMITS.maxPurchaseCostPct,
+		),
+		saleCostPct: clamp(
+			merged.saleCostPct + tierAssumptions.saleCostAdjustmentPct,
+			BUY_VS_RENT_LIMITS.minSaleCostPct,
+			BUY_VS_RENT_LIMITS.maxSaleCostPct,
+		),
+		rentDepositMonths: clamp(
+			merged.rentDepositMonths + tierAssumptions.rentDepositMonthsAdjustment,
+			BUY_VS_RENT_LIMITS.minDepositMonths,
+			BUY_VS_RENT_LIMITS.maxDepositMonths,
+		),
+		rentBrokerageMonths: clamp(
+			merged.rentBrokerageMonths,
+			BUY_VS_RENT_LIMITS.minBrokerageMonths,
+			BUY_VS_RENT_LIMITS.maxBrokerageMonths,
+		),
+		propertyAppreciationPct: clamp(
+			merged.propertyAppreciationPct +
+				tierAssumptions.propertyAppreciationAdjustmentPct,
+			BUY_VS_RENT_LIMITS.minAppreciationPct,
+			BUY_VS_RENT_LIMITS.maxAppreciationPct,
+		),
+		rentIncreasePct: clamp(
+			merged.rentIncreasePct + tierAssumptions.rentIncreaseAdjustmentPct,
+			BUY_VS_RENT_LIMITS.minRentIncreasePct,
+			BUY_VS_RENT_LIMITS.maxRentIncreasePct,
+		),
 	};
 }
 
@@ -298,33 +320,42 @@ function buildAffordabilityBenchmarks({
 	priceToIncomeBand: BenchmarkBand;
 	emiToIncomeRatio: number | null;
 	emiToIncomeBand: BenchmarkBand | null;
-	loanEndAge: number;
-	ageTenureBand: BenchmarkBand;
+	loanEndAge: number | null;
+	ageTenureBand: BenchmarkBand | null;
 }): AffordabilityBenchmark[] {
 	const benchmarks: AffordabilityBenchmark[] = [
 		{
+			id: "price-to-income",
 			label: "Home price to annual income",
 			value: `${priceToIncomeRatio.toFixed(1)}x`,
+			metricValue: priceToIncomeRatio,
 			band: priceToIncomeBand,
 			description:
 				"Lower multiples are usually easier to carry without sacrificing long-term savings.",
 		},
-		{
-			label: "Age and loan-tenure fit",
-			value: `Loan ends around age ${loanEndAge}`,
-			band: ageTenureBand,
-			description:
-				"A shorter tenure relative to working years reduces repayment pressure later in life.",
-		},
 	];
 
 	if (emiToIncomeRatio !== null && emiToIncomeBand !== null) {
-		benchmarks.splice(1, 0, {
+		benchmarks.push({
+			id: "emi-to-income",
 			label: "EMI to monthly take-home",
 			value: `${(emiToIncomeRatio * 100).toFixed(0)}%`,
+			metricValue: emiToIncomeRatio,
 			band: emiToIncomeBand,
 			description:
 				"This uses your estimated monthly take-home and is a practical affordability stress check.",
+		});
+	}
+
+	if (loanEndAge !== null && ageTenureBand !== null) {
+		benchmarks.push({
+			id: "age-repayment-fit",
+			label: "Age and repayment fit",
+			value: `Housing commitment runs to about age ${loanEndAge}`,
+			metricValue: loanEndAge,
+			band: ageTenureBand,
+			description:
+				"This uses the earlier of your stay horizon and loan tenure, since the model assumes you exit at the chosen horizon.",
 		});
 	}
 
@@ -338,8 +369,8 @@ function buildReasons({
 	firstYearRentMonthlyOutgo,
 	breakEvenYear,
 	stayYears,
-	finalHomeEquity,
-	finalRentCorpus,
+	finalBuyNetWorth,
+	finalRentNetWorth,
 	priceToIncomeBand,
 	emiToIncomeBand,
 	ageTenureBand,
@@ -350,17 +381,21 @@ function buildReasons({
 	firstYearRentMonthlyOutgo: number;
 	breakEvenYear: number | null;
 	stayYears: number;
-	finalHomeEquity: number;
-	finalRentCorpus: number;
+	finalBuyNetWorth: number;
+	finalRentNetWorth: number;
 	priceToIncomeBand: BenchmarkBand;
 	emiToIncomeBand: BenchmarkBand | null;
-	ageTenureBand: BenchmarkBand;
+	ageTenureBand: BenchmarkBand | null;
 }) {
 	const reasons: string[] = [];
 
 	if (upfrontGap > 0) {
 		reasons.push(
 			`Buying needs ${formatCurrency(upfrontGap)} more cash up front.`,
+		);
+	} else if (upfrontGap < 0) {
+		reasons.push(
+			`Renting needs ${formatCurrency(Math.abs(upfrontGap))} more cash up front.`,
 		);
 	}
 
@@ -375,7 +410,7 @@ function buildReasons({
 	}
 
 	if (breakEvenYear === null) {
-		reasons.push("Buying does not catch up within the selected horizon.");
+		reasons.push("Buying does not catch up within the modeled window.");
 	} else if (breakEvenYear > stayYears) {
 		reasons.push(
 			`Buying only starts catching up after roughly year ${breakEvenYear}.`,
@@ -384,13 +419,13 @@ function buildReasons({
 		reasons.push(`Buying catches up around year ${breakEvenYear}.`);
 	}
 
-	if (finalHomeEquity > finalRentCorpus) {
+	if (finalBuyNetWorth > finalRentNetWorth) {
 		reasons.push(
-			`By the end, home equity reaches ${formatCurrency(finalHomeEquity)} versus ${formatCurrency(finalRentCorpus)} for the renter corpus.`,
+			`By the end, buying reaches ${formatCurrency(finalBuyNetWorth)} in total net worth versus ${formatCurrency(finalRentNetWorth)} for renting.`,
 		);
 	} else {
 		reasons.push(
-			`By the end, the renter corpus reaches ${formatCurrency(finalRentCorpus)} versus ${formatCurrency(finalHomeEquity)} in saleable home equity.`,
+			`By the end, renting reaches ${formatCurrency(finalRentNetWorth)} in total net worth versus ${formatCurrency(finalBuyNetWorth)} for buying.`,
 		);
 	}
 
@@ -417,24 +452,31 @@ function calculateScenarioSummaries(inputs: BuyVsRentInputs) {
 	return (Object.keys(BUY_VS_RENT_SCENARIO_OFFSETS) as ScenarioLabel[]).map(
 		(label) => {
 			const offsets = BUY_VS_RENT_SCENARIO_OFFSETS[label];
-			const scenarioInputs = normaliseInputs({
-				...inputs,
-				propertyAppreciationPct:
-					inputs.propertyAppreciationPct + offsets.propertyAppreciationPct,
+			const scenarioAssumptions = normaliseMarketAssumptions(inputs.cityTier, {
 				investmentReturnPct:
-					inputs.investmentReturnPct + offsets.investmentReturnPct,
-				rentIncreasePct: inputs.rentIncreasePct + offsets.rentIncreasePct,
+					BUY_VS_RENT_MARKET_ASSUMPTIONS.investmentReturnPct +
+					offsets.investmentReturnPct,
+				propertyAppreciationPct:
+					BUY_VS_RENT_MARKET_ASSUMPTIONS.propertyAppreciationPct +
+					offsets.propertyAppreciationPct,
+				rentIncreasePct:
+					BUY_VS_RENT_MARKET_ASSUMPTIONS.rentIncreasePct +
+					offsets.rentIncreasePct,
 			});
-			const result = calculateBuyVsRentInternal(scenarioInputs, false);
+			const result = calculateBuyVsRentInternal(
+				inputs,
+				scenarioAssumptions,
+				false,
+			);
 			return {
 				label,
 				verdict: result.verdict,
 				gap: result.financialGap,
 				buyNetWorth: result.buyNetWorth,
 				rentNetWorth: result.rentNetWorth,
-				propertyAppreciationPct: scenarioInputs.propertyAppreciationPct,
-				investmentReturnPct: scenarioInputs.investmentReturnPct,
-				rentIncreasePct: scenarioInputs.rentIncreasePct,
+				propertyAppreciationPct: scenarioAssumptions.propertyAppreciationPct,
+				investmentReturnPct: scenarioAssumptions.investmentReturnPct,
+				rentIncreasePct: scenarioAssumptions.rentIncreasePct,
 			};
 		},
 	);
@@ -442,18 +484,19 @@ function calculateScenarioSummaries(inputs: BuyVsRentInputs) {
 
 function calculateBuyVsRentInternal(
 	inputs: BuyVsRentInputs,
+	assumptions: BuyVsRentMarketAssumptions,
 	withScenarios: boolean,
 ) {
 	const propertyPrice = toRupeesFromLakhs(inputs.propertyPriceLakhs);
-	const downPayment = propertyPrice * (inputs.downPaymentPct / 100);
+	const downPayment = toRupeesFromLakhs(inputs.downPaymentLakhs);
 	const loanPrincipal = Math.max(propertyPrice - downPayment, 0);
-	const purchaseCosts = propertyPrice * (inputs.purchaseCostPct / 100);
-	const rentDeposit = inputs.monthlyRent * inputs.rentDepositMonths;
-	const rentBrokerage = inputs.monthlyRent * inputs.rentBrokerageMonths;
+	const purchaseCosts = propertyPrice * (assumptions.purchaseCostPct / 100);
+	const rentDeposit = inputs.monthlyRent * assumptions.rentDepositMonths;
+	const rentBrokerage = inputs.monthlyRent * assumptions.rentBrokerageMonths;
 	const upfrontBuyCash = downPayment + purchaseCosts;
 	const upfrontRentCash = rentDeposit + rentBrokerage;
 	const upfrontGap = upfrontBuyCash - upfrontRentCash;
-	const investMonthlyRate = monthlyRate(inputs.investmentReturnPct);
+	const investMonthlyRate = monthlyRate(assumptions.investmentReturnPct);
 	const loanMonthlyRate = inputs.homeLoanRatePct / 12 / 100;
 	const stayMonths = inputs.stayYears * 12;
 	const loanMonths = inputs.loanTenureYears * 12;
@@ -501,19 +544,20 @@ function calculateBuyVsRentInternal(
 		monthlyTakeHomeNewRegime: number | null;
 		monthlyTakeHomeRecommended: number | null;
 	}) {
-		const saleableHomeValue = propertyValue * (1 - inputs.saleCostPct / 100);
-		const buyHomeEquity = Math.max(0, saleableHomeValue - outstandingLoan);
+		const saleableHomeValue =
+			propertyValue * (1 - assumptions.saleCostPct / 100);
+		const buyHomeEquity = saleableHomeValue - outstandingLoan;
 		const rentNetWorth = rentCorpus + rentDeposit;
 		const buyNetWorth = buyHomeEquity + buyCorpus;
 		const gap = buyNetWorth - rentNetWorth;
 		const realBuyNetWorth = scaleToRealValue(
 			buyNetWorth,
-			inputs.inflationRatePct,
+			assumptions.inflationRatePct,
 			yearOffset,
 		);
 		const realRentNetWorth = scaleToRealValue(
 			rentNetWorth,
-			inputs.inflationRatePct,
+			assumptions.inflationRatePct,
 			yearOffset,
 		);
 
@@ -591,8 +635,8 @@ function calculateBuyVsRentInternal(
 		);
 
 		const monthlyMaintenance =
-			(propertyValue * (inputs.annualMaintenancePct / 100) +
-				inputs.annualOwnerFixedCosts) /
+			(propertyValue * (assumptions.annualMaintenancePct / 100) +
+				assumptions.annualOwnerFixedCosts) /
 			12;
 
 		for (
@@ -636,7 +680,7 @@ function calculateBuyVsRentInternal(
 			}
 		}
 
-		propertyValue *= 1 + inputs.propertyAppreciationPct / 100;
+		propertyValue *= 1 + assumptions.propertyAppreciationPct / 100;
 		createPoint({
 			yearOffset: yearIndex,
 			buyAnnualOutgo,
@@ -649,7 +693,7 @@ function calculateBuyVsRentInternal(
 			monthlyTakeHomeNewRegime: takeHomeByRegime.newRegime,
 			monthlyTakeHomeRecommended,
 		});
-		currentMonthlyRent *= 1 + inputs.rentIncreasePct / 100;
+		currentMonthlyRent *= 1 + assumptions.rentIncreasePct / 100;
 	}
 
 	const finalPoint = points.at(-1) ?? points[0];
@@ -660,12 +704,37 @@ function calculateBuyVsRentInternal(
 		propertyPrice,
 		monthlyRent: inputs.monthlyRent,
 	});
-	const breakEvenPoint = points.find(
+	const breakEvenPointInHorizon = points.find(
 		(point, index) => index > 0 && point.gap >= 0,
 	);
-	const buyBecomesReasonableAfterYear = breakEvenPoint
-		? breakEvenPoint.year - inputs.startYear
-		: null;
+	let breakEvenYear =
+		breakEvenPointInHorizon === undefined
+			? null
+			: breakEvenPointInHorizon.year - inputs.startYear;
+
+	if (
+		breakEvenYear === null &&
+		inputs.stayYears < BUY_VS_RENT_LIMITS.maxStayYears
+	) {
+		const extendedResult = calculateBuyVsRentInternal(
+			{
+				...inputs,
+				stayYears: BUY_VS_RENT_LIMITS.maxStayYears,
+			},
+			assumptions,
+			false,
+		);
+		const extendedBreakEvenPoint = extendedResult.points.find(
+			(point, index) => index > 0 && point.gap >= 0,
+		);
+
+		breakEvenYear =
+			extendedBreakEvenPoint === undefined
+				? null
+				: extendedBreakEvenPoint.year - inputs.startYear;
+	}
+
+	const buyCatchUpYear = breakEvenYear;
 	const scenarios = withScenarios ? calculateScenarioSummaries(inputs) : [];
 	const confidence = getConfidence(
 		verdict,
@@ -678,9 +747,9 @@ function calculateBuyVsRentInternal(
 						gap: financialGap,
 						buyNetWorth: finalPoint.buyNetWorth,
 						rentNetWorth: finalPoint.rentNetWorth,
-						propertyAppreciationPct: inputs.propertyAppreciationPct,
-						investmentReturnPct: inputs.investmentReturnPct,
-						rentIncreasePct: inputs.rentIncreasePct,
+						propertyAppreciationPct: assumptions.propertyAppreciationPct,
+						investmentReturnPct: assumptions.investmentReturnPct,
+						rentIncreasePct: assumptions.rentIncreasePct,
 					},
 				],
 	);
@@ -704,13 +773,18 @@ function calculateBuyVsRentInternal(
 		emiToIncomeRatio === null
 			? null
 			: classifyBand(emiToIncomeRatio, BUY_VS_RENT_BENCHMARKS.emiToIncome);
-	const loanEndAge = inputs.ageYears + inputs.loanTenureYears;
+	const loanEndAge =
+		loanPrincipal > 0
+			? inputs.ageYears + Math.min(inputs.stayYears, inputs.loanTenureYears)
+			: null;
 	const ageTenureBand =
-		loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.goodMaxLoanEndAge
-			? ("good" as const)
-			: loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.watchMaxLoanEndAge
-				? ("watch" as const)
-				: ("risky" as const);
+		loanEndAge === null
+			? null
+			: loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.goodMaxLoanEndAge
+				? ("good" as const)
+				: loanEndAge <= BUY_VS_RENT_BENCHMARKS.ageTenure.watchMaxLoanEndAge
+					? ("watch" as const)
+					: ("risky" as const);
 	const affordabilityBenchmarks = buildAffordabilityBenchmarks({
 		priceToIncomeRatio,
 		priceToIncomeBand,
@@ -730,10 +804,7 @@ function calculateBuyVsRentInternal(
 		financialGap,
 		buyNetWorth: finalPoint.buyNetWorth,
 		rentNetWorth: finalPoint.rentNetWorth,
-		breakEvenYear:
-			breakEvenPoint === undefined
-				? null
-				: breakEvenPoint.year - inputs.startYear,
+		breakEvenYear,
 		upfrontBuyCash,
 		upfrontRentCash,
 		upfrontGap,
@@ -742,10 +813,11 @@ function calculateBuyVsRentInternal(
 		finalYearBuyMonthlyOutgo: finalPoint.buyMonthlyOutgo,
 		finalYearRentMonthlyOutgo: finalPoint.rentMonthlyOutgo,
 		finalHomeEquity: finalPoint.buyHomeEquity,
-		finalRentCorpus: finalPoint.rentNetWorth,
+		finalBuyInvestmentCorpus: finalPoint.buyInvestmentCorpus,
 		monthlyTakeHomeOldRegime: firstYearPoint.monthlyTakeHomeOldRegime,
 		monthlyTakeHomeNewRegime: firstYearPoint.monthlyTakeHomeNewRegime,
 		monthlyTakeHomeRecommended: firstYearPoint.monthlyTakeHomeRecommended,
+		finalYearMonthlyTakeHomeRecommended: finalPoint.monthlyTakeHomeRecommended,
 		recommendedTaxRegime,
 		recommendedTaxRegimeNote: getTaxRegimeRecommendationNote({
 			recommendedTaxRegime,
@@ -754,25 +826,24 @@ function calculateBuyVsRentInternal(
 		}),
 		buyStressRatio: firstYearPoint.buyStressRatio,
 		rentStressRatio: firstYearPoint.rentStressRatio,
+		finalYearBuyStressRatio: finalPoint.buyStressRatio,
+		finalYearRentStressRatio: finalPoint.rentStressRatio,
 		priceToIncomeRatio,
 		priceToIncomeBand,
 		emiToIncomeRatio,
 		emiToIncomeBand,
 		ageTenureBand,
 		affordabilityBenchmarks,
-		buyBecomesReasonableAfterYear,
+		buyCatchUpYear,
 		reasons: buildReasons({
 			verdict,
 			upfrontGap,
 			firstYearBuyMonthlyOutgo: firstYearPoint.buyMonthlyOutgo,
 			firstYearRentMonthlyOutgo: firstYearPoint.rentMonthlyOutgo,
-			breakEvenYear:
-				breakEvenPoint === undefined
-					? null
-					: breakEvenPoint.year - inputs.startYear,
+			breakEvenYear,
 			stayYears: inputs.stayYears,
-			finalHomeEquity: finalPoint.buyHomeEquity,
-			finalRentCorpus: finalPoint.rentNetWorth,
+			finalBuyNetWorth: finalPoint.buyNetWorth,
+			finalRentNetWorth: finalPoint.rentNetWorth,
 			priceToIncomeBand,
 			emiToIncomeBand,
 			ageTenureBand,
@@ -802,7 +873,11 @@ export function calculateBuyVsRent(
 	input: Partial<BuyVsRentInputs> = {},
 ): BuyVsRentResult {
 	const inputs = normaliseInputs(input);
-	const result = calculateBuyVsRentInternal(inputs, true);
+	const result = calculateBuyVsRentInternal(
+		inputs,
+		normaliseMarketAssumptions(inputs.cityTier),
+		true,
+	);
 
 	return {
 		inputs,

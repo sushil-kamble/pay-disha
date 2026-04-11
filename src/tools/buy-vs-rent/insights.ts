@@ -3,7 +3,6 @@ import {
 	BUY_VS_RENT_VERDICT_LABELS,
 } from "./constants";
 import type {
-	BenchmarkBand,
 	BuyVsRentInsight,
 	BuyVsRentSummary,
 	BuyVsRentVerdict,
@@ -35,12 +34,17 @@ function buildStory({
 	breakEvenYear: number | null;
 	upfrontGap: number;
 }) {
+	const upfrontDifference =
+		upfrontGap >= 0
+			? `The upfront hit is heavier by ${formatCurrency(upfrontGap)}`
+			: `Renting needs ${formatCurrency(Math.abs(upfrontGap))} more day-one cash`;
+
 	if (verdict === "buy") {
-		return `Buying ends ahead by ${formatCurrency(financialGap)} over ${horizonYears} years. The upfront hit is heavier by ${formatCurrency(upfrontGap)}, but the equity build-up catches up${breakEvenYear ? ` around year ${breakEvenYear}` : " within the selected horizon"}.`;
+		return `Buying ends ahead by ${formatCurrency(financialGap)} over ${horizonYears} years. ${upfrontDifference}, but the total wealth path catches up${breakEvenYear ? ` around year ${breakEvenYear}` : " within the modeled window"}.`;
 	}
 
 	if (verdict === "rent") {
-		return `Renting ends ahead by ${formatCurrency(Math.abs(financialGap))} over ${horizonYears} years. The main drag on buying is the heavier upfront cash plus slower payback${breakEvenYear ? ` until roughly year ${breakEvenYear}` : " across the full horizon"}.`;
+		return `Renting ends ahead by ${formatCurrency(Math.abs(financialGap))} over ${horizonYears} years. The main drag on buying is the higher carrying cost plus slower payback${breakEvenYear ? ` until roughly year ${breakEvenYear}` : " across the modeled window"}.`;
 	}
 
 	return `The numbers are too close to call over ${horizonYears} years. The financial gap stays within ${formatCurrency(Math.abs(financialGap))}, so family stability vs flexibility should decide the tie.`;
@@ -61,8 +65,8 @@ function buildDecisionNote(
 		return "This is one of the clearer cases where buying can make sense: the stay length is long enough for equity to outrun rent savings.";
 	}
 
-	if (summary.verdict === "rent" && summary.buyBecomesReasonableAfterYear) {
-		return `Renting looks cleaner right now, but buying starts becoming financially respectable only if you can stay for about ${summary.buyBecomesReasonableAfterYear} years or more.`;
+	if (summary.verdict === "rent" && summary.buyCatchUpYear) {
+		return `Renting looks cleaner right now, but buying only catches up financially if you can stay for about ${summary.buyCatchUpYear} years or more.`;
 	}
 
 	if (summary.verdict === "rent") {
@@ -72,18 +76,6 @@ function buildDecisionNote(
 	return "This is a genuine judgement call. If family roots and housing certainty matter more, buying is defensible; if flexibility matters more, renting stays cleaner.";
 }
 
-function getBandTone(band: BenchmarkBand) {
-	if (band === "good") return "positive" as const;
-	if (band === "watch") return "neutral" as const;
-	return "caution" as const;
-}
-
-function getBandLabel(band: BenchmarkBand) {
-	if (band === "good") return "Good";
-	if (band === "watch") return "Watch";
-	return "Risky";
-}
-
 export function buildBuyVsRentInsights({
 	verdict,
 	financialGap,
@@ -91,44 +83,24 @@ export function buildBuyVsRentInsights({
 	breakEvenYear,
 	upfrontGap,
 	upfrontBuyCash,
+	upfrontRentCash,
 	firstYearBuyMonthlyOutgo,
 	firstYearRentMonthlyOutgo,
-	finalHomeEquity,
-	finalRentCorpus,
+	buyNetWorth,
+	rentNetWorth,
 	monthlyTakeHomeOldRegime,
 	monthlyTakeHomeNewRegime,
 	recommendedTaxRegime,
 	recommendedTaxRegimeNote,
 	buyStressRatio,
 	rentStressRatio,
-	priceToIncomeRatio,
-	priceToIncomeBand,
-	emiToIncomeRatio,
-	emiToIncomeBand,
-	affordabilityBenchmarks,
-}: {
-	verdict: BuyVsRentVerdict;
-	financialGap: number;
-	horizonYears: number;
-	breakEvenYear: number | null;
-	upfrontGap: number;
-	upfrontBuyCash: number;
-	firstYearBuyMonthlyOutgo: number;
-	firstYearRentMonthlyOutgo: number;
-	finalHomeEquity: number;
-	finalRentCorpus: number;
-	monthlyTakeHomeOldRegime: number | null;
-	monthlyTakeHomeNewRegime: number | null;
-	recommendedTaxRegime: "new" | "old" | null;
-	recommendedTaxRegimeNote: string;
-	buyStressRatio: number | null;
-	rentStressRatio: number | null;
-	priceToIncomeRatio: number;
-	priceToIncomeBand: BenchmarkBand;
-	emiToIncomeRatio: number | null;
-	emiToIncomeBand: BenchmarkBand | null;
-	affordabilityBenchmarks: BuyVsRentSummary["affordabilityBenchmarks"];
-}): BuyVsRentInsight[] {
+	finalYearMonthlyTakeHomeRecommended,
+	finalYearBuyStressRatio,
+	finalYearRentStressRatio,
+}: Omit<
+	BuyVsRentSummary,
+	"insights" | "story" | "decisionNote"
+>): BuyVsRentInsight[] {
 	const insights: BuyVsRentInsight[] = [
 		{
 			title: "Verdict",
@@ -149,8 +121,11 @@ export function buildBuyVsRentInsights({
 		},
 		{
 			title: "Upfront ask",
-			value: formatCurrency(upfrontBuyCash),
-			description: `Buying needs ${formatCurrency(upfrontGap)} more cash on day one than renting in this setup. That is the first hurdle the house must earn back.`,
+			value: formatCurrency(Math.abs(upfrontGap)),
+			description:
+				upfrontGap >= 0
+					? `Buying needs ${formatCurrency(upfrontGap)} more cash on day one than renting in this setup. Total day-one cash is ${formatCurrency(upfrontBuyCash)} to buy versus ${formatCurrency(upfrontRentCash)} to rent.`
+					: `Renting needs ${formatCurrency(Math.abs(upfrontGap))} more cash on day one than buying in this setup. Total day-one cash is ${formatCurrency(upfrontRentCash)} to rent versus ${formatCurrency(upfrontBuyCash)} to buy.`,
 			tone: upfrontGap > 0 ? "caution" : "neutral",
 		},
 		{
@@ -164,15 +139,9 @@ export function buildBuyVsRentInsights({
 		},
 		{
 			title: "Ending position",
-			value: `${formatCurrency(finalHomeEquity)} vs ${formatCurrency(finalRentCorpus)}`,
-			description: `By year ${horizonYears}, the buyer ends with home equity and the renter ends with an investment corpus plus refundable deposit.`,
-			tone: finalHomeEquity >= finalRentCorpus ? "positive" : "neutral",
-		},
-		{
-			title: "Income benchmark",
-			value: `${priceToIncomeRatio.toFixed(1)}x`,
-			description: `Home price is ${priceToIncomeRatio.toFixed(1)} times annual income. Band: ${getBandLabel(priceToIncomeBand)}.`,
-			tone: getBandTone(priceToIncomeBand),
+			value: `${formatCurrency(buyNetWorth)} vs ${formatCurrency(rentNetWorth)}`,
+			description: `By year ${horizonYears}, this compares total buyer net worth against the renter's investment corpus plus refundable deposit.`,
+			tone: buyNetWorth >= rentNetWorth ? "positive" : "neutral",
 		},
 	];
 
@@ -192,7 +161,7 @@ export function buildBuyVsRentInsights({
 		insights.push({
 			title: "Estimated take-home",
 			value: `${formatCurrency(monthlyTakeHomeNewRegime ?? 0)} (new) vs ${formatCurrency(monthlyTakeHomeOldRegime ?? 0)} (old)`,
-			description: `${recommendedTaxRegimeNote} Recommended affordability regime: ${regimeLabel}.`,
+			description: `${recommendedTaxRegimeNote} Regime used: ${regimeLabel}.`,
 			tone: "neutral",
 		});
 	}
@@ -209,34 +178,34 @@ export function buildBuyVsRentInsights({
 			title: "Stress test",
 			value: `${(buyStressRatio * 100).toFixed(0)}% vs ${(rentStressRatio * 100).toFixed(0)}%`,
 			description: `This compares first-year housing outgo against estimated monthly take-home. Lower is safer for real life, not just spreadsheets.`,
-			tone: buyStressRatio <= rentStressRatio ? ("positive" as const) : buyTone,
-		});
-	}
-
-	if (emiToIncomeRatio !== null && emiToIncomeBand !== null) {
-		insights.push({
-			title: "EMI affordability band",
-			value: `${(emiToIncomeRatio * 100).toFixed(0)}% (${getBandLabel(emiToIncomeBand)})`,
-			description:
-				"This uses EMI divided by estimated monthly take-home to highlight affordability pressure.",
-			tone: getBandTone(emiToIncomeBand),
-		});
-	}
-
-	if (affordabilityBenchmarks.length > 0) {
-		const riskyCount = affordabilityBenchmarks.filter(
-			(benchmark) => benchmark.band === "risky",
-		).length;
-		const watchCount = affordabilityBenchmarks.filter(
-			(benchmark) => benchmark.band === "watch",
-		).length;
-		insights.push({
-			title: "Benchmark summary",
-			value: `${riskyCount} risky · ${watchCount} watch`,
-			description:
-				"Use benchmark flags as guardrails; they complement the net-worth verdict, not replace it.",
 			tone:
-				riskyCount > 0 ? "caution" : watchCount > 0 ? "neutral" : "positive",
+				buyTone === "caution"
+					? "caution"
+					: buyTone === "neutral"
+						? "neutral"
+						: buyStressRatio <= rentStressRatio
+							? "positive"
+							: "neutral",
+		});
+	}
+
+	if (
+		finalYearMonthlyTakeHomeRecommended !== null &&
+		finalYearBuyStressRatio !== null &&
+		finalYearRentStressRatio !== null &&
+		horizonYears > 1
+	) {
+		insights.push({
+			title: "Finish-line affordability",
+			value: `${(finalYearBuyStressRatio * 100).toFixed(0)}% vs ${(finalYearRentStressRatio * 100).toFixed(0)}%`,
+			description: `By year ${horizonYears}, estimated take-home reaches ${formatCurrency(finalYearMonthlyTakeHomeRecommended)} a month. This is where salary growth starts showing up in the analysis.`,
+			tone:
+				finalYearBuyStressRatio > BUY_VS_RENT_BENCHMARKS.emiToIncome.watchMax
+					? "caution"
+					: finalYearBuyStressRatio >
+							BUY_VS_RENT_BENCHMARKS.emiToIncome.softWarning
+						? "neutral"
+						: "positive",
 		});
 	}
 
