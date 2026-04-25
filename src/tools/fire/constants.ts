@@ -8,14 +8,15 @@ export const FIRE_DEFAULTS: FireInputs = {
 	existingSavings: 500000,
 	targetRetirementAge: 45,
 	monthlySip: 20000,
+	annualSipStepUpPct: 0,
 	expectedReturnPct: 12,
 	inflationPct: 6,
-	swrPct: 3,
-	healthcareInflationPct: 10,
-	monthlyHealthcareBudget: 5000,
-	epfMonthlyContribution: 0,
-	epfInterestPct: 8.25,
 };
+
+export const FIRE_MARKET_ASSUMPTIONS = {
+	// India-focused FIRE planning commonly uses about 30x-33x annual expenses.
+	corpusMultiple: 33,
+} as const;
 
 export const FIRE_LIMITS = {
 	minAge: 18,
@@ -28,20 +29,12 @@ export const FIRE_LIMITS = {
 	maxExistingSavings: 100000000,
 	minMonthlySip: 0,
 	maxMonthlySip: 1000000,
+	minAnnualSipStepUpPct: 0,
+	maxAnnualSipStepUpPct: 100,
 	minExpectedReturnPct: 4,
 	maxExpectedReturnPct: 20,
 	minInflationPct: 2,
 	maxInflationPct: 15,
-	minSwrPct: 2,
-	maxSwrPct: 6,
-	minHealthcareInflationPct: 5,
-	maxHealthcareInflationPct: 18,
-	minMonthlyHealthcare: 0,
-	maxMonthlyHealthcare: 100000,
-	minEpfContribution: 0,
-	maxEpfContribution: 100000,
-	minEpfInterestPct: 6,
-	maxEpfInterestPct: 12,
 };
 
 export const FIRE_TYPE_CONFIG: Record<
@@ -106,18 +99,16 @@ export const CORPUS_MILESTONES = [
 ];
 
 export const FIRE_EDUCATION: Record<string, string> = {
-	swr: "The 4% rule comes from US data. Indian inflation is higher (~6%) and rupee depreciation adds risk, so 3% to 3.5% is safer for India.",
 	inflation:
 		"India's average CPI inflation over the past 20 years is around 6%. Urban living costs often outpace this.",
-	healthcareInflation:
-		"Healthcare costs in India have been inflating at 10-14% annually — roughly double general inflation.",
 	returns:
 		"The Nifty 50 has delivered ~12% CAGR over 20+ years. After inflation, real returns are ~6%.",
+	stepUp:
+		"Step-up means increasing your SIP every year as income grows. A 0% step-up keeps the SIP fixed.",
 	coastFire:
 		"Coast FIRE means you already have enough invested that compounding alone will get you to your FIRE number by retirement. You can stop saving aggressively and just cover current expenses.",
 	baristaFire:
 		"Barista FIRE means your portfolio covers most expenses, but you work part-time to fill the gap. In India, think freelancing, teaching, or a passion project.",
-	epf: "EPF earns 8.25% tax-free but is locked until 58. Including it gives a more accurate picture of your total retirement wealth.",
 	fireNumber:
-		"Your FIRE number is the corpus that, when withdrawn at your safe rate each year, covers your expenses forever.",
+		"Your FIRE number is the corpus target based on the configured multiple of your annual expenses.",
 };

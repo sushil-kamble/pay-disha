@@ -1,3 +1,4 @@
+import { FIRE_MARKET_ASSUMPTIONS } from "./constants";
 import type { FireInputs, FireInsight, LeverScenario } from "./types";
 
 function fmt(value: number): string {
@@ -14,41 +15,59 @@ function fmtMonthly(value: number): string {
 }
 
 function calculateAnnualExpenses(inputs: FireInputs, years: number) {
-	const generalMonthly = Math.max(
-		0,
-		inputs.monthlyExpenses - inputs.monthlyHealthcareBudget,
-	);
-	const futureGeneral =
-		generalMonthly * 12 * (1 + inputs.inflationPct / 100) ** years;
-	const futureHealthcare =
-		inputs.monthlyHealthcareBudget *
-		12 *
-		(1 + inputs.healthcareInflationPct / 100) ** years;
-	return futureGeneral + futureHealthcare;
+	return inputs.monthlyExpenses * 12 * (1 + inputs.inflationPct / 100) ** years;
 }
 
 function computeFireNumber(inputs: FireInputs): number {
 	const years = inputs.targetRetirementAge - inputs.currentAge;
-	return calculateAnnualExpenses(inputs, years) / (inputs.swrPct / 100);
+	return (
+		calculateAnnualExpenses(inputs, years) *
+		FIRE_MARKET_ASSUMPTIONS.corpusMultiple
+	);
+}
+
+function calculateEffectiveMonthlyReturn(returnPct: number): number {
+	return (1 + returnPct / 100) ** (1 / 12) - 1;
 }
 
 function solveYears(inputs: FireInputs): number | null {
 	const currentTarget =
-		calculateAnnualExpenses(inputs, 0) / (inputs.swrPct / 100);
+		calculateAnnualExpenses(inputs, 0) * FIRE_MARKET_ASSUMPTIONS.corpusMultiple;
 	if (inputs.existingSavings >= currentTarget) return 0;
 	if (inputs.monthlySip <= 0) return null;
 
-	const monthlyRate = inputs.expectedReturnPct / 100 / 12;
+	const monthlyRate = calculateEffectiveMonthlyReturn(inputs.expectedReturnPct);
 	let corpus = inputs.existingSavings;
+	let currentSip = inputs.monthlySip;
 
 	for (let month = 1; month <= 600; month++) {
-		corpus = corpus * (1 + monthlyRate) + inputs.monthlySip;
+		corpus = corpus * (1 + monthlyRate) + currentSip;
+		const years = month / 12;
 		const target =
-			calculateAnnualExpenses(inputs, month / 12) / (inputs.swrPct / 100);
+			calculateAnnualExpenses(inputs, years) *
+			FIRE_MARKET_ASSUMPTIONS.corpusMultiple;
 		if (corpus >= target) return Math.ceil((month / 12) * 10) / 10;
+		if (inputs.annualSipStepUpPct > 0 && month % 12 === 0) {
+			currentSip *= 1 + inputs.annualSipStepUpPct / 100;
+		}
 	}
 
 	return null;
+}
+
+function projectSipFutureValue(inputs: FireInputs, months: number): number {
+	const monthlyRate = calculateEffectiveMonthlyReturn(inputs.expectedReturnPct);
+	let corpus = 0;
+	let currentSip = inputs.monthlySip;
+
+	for (let month = 1; month <= months; month++) {
+		corpus = corpus * (1 + monthlyRate) + currentSip;
+		if (inputs.annualSipStepUpPct > 0 && month % 12 === 0) {
+			currentSip *= 1 + inputs.annualSipStepUpPct / 100;
+		}
+	}
+
+	return corpus;
 }
 
 const LEVER_TWEAKS: Array<{
@@ -73,11 +92,11 @@ const LEVER_TWEAKS: Array<{
 		}),
 	},
 	{
-		id: "retire-later",
-		label: "Retire 3 years later",
+		id: "step-up-sip",
+		label: "Add 5% SIP step-up",
 		modify: (inputs) => ({
 			...inputs,
-			targetRetirementAge: inputs.targetRetirementAge + 3,
+			annualSipStepUpPct: inputs.annualSipStepUpPct + 5,
 		}),
 	},
 	{
@@ -106,7 +125,6 @@ export function buildFireInsights(data: {
 	fireAge: number | null;
 	coastFireNumber: number;
 	projectedCorpus: number;
-	epfCorpusAtRetirement: number;
 	shortfall: number;
 }): FireInsight[] {
 	const {
@@ -117,7 +135,6 @@ export function buildFireInsights(data: {
 		fireAge,
 		coastFireNumber,
 		projectedCorpus,
-		epfCorpusAtRetirement,
 		shortfall,
 	} = data;
 
@@ -129,7 +146,7 @@ export function buildFireInsights(data: {
 		id: "headline",
 		title: "Your FIRE Number",
 		value: fmt(fireNumber),
-		description: `You need ${fmt(fireNumber)} to retire at age ${inputs.targetRetirementAge} and sustain your lifestyle forever.`,
+		description: `You need ${fmt(fireNumber)} by age ${inputs.targetRetirementAge} to make work optional.`,
 		tone: "neutral",
 	});
 
@@ -163,8 +180,8 @@ export function buildFireInsights(data: {
 		value: fmt(projectedCorpus),
 		description:
 			shortfall > 0
-				? `At age ${inputs.targetRetirementAge}, your liquid corpus reaches ${fmt(projectedCorpus)}. That still leaves a ${fmt(shortfall)} gap versus your FIRE target.`
-				: `At age ${inputs.targetRetirementAge}, your liquid corpus reaches ${fmt(projectedCorpus)}. That is ${fmt(Math.abs(shortfall))} above your FIRE target.`,
+				? `At age ${inputs.targetRetirementAge}, your corpus reaches ${fmt(projectedCorpus)}. That still leaves a ${fmt(shortfall)} gap versus your FIRE target.`
+				: `At age ${inputs.targetRetirementAge}, your corpus reaches ${fmt(projectedCorpus)}. That is ${fmt(Math.abs(shortfall))} above your FIRE target.`,
 		tone: shortfall > 0 ? "caution" : "positive",
 	});
 
@@ -172,34 +189,18 @@ export function buildFireInsights(data: {
 	const currentAnnual = inputs.monthlyExpenses * 12;
 	const inflationAdded = futureAnnualExpenses - currentAnnual;
 	if (inflationAdded > 0) {
+		const corpusImpact =
+			inflationAdded * FIRE_MARKET_ASSUMPTIONS.corpusMultiple;
 		insights.push({
 			id: "inflation-shock",
 			title: "The inflation tax",
-			value: fmt(inflationAdded * (1 / (inputs.swrPct / 100))),
-			description: `Your ${fmtMonthly(inputs.monthlyExpenses)} expenses become ${fmtMonthly(futureAnnualExpenses / 12)} by age ${inputs.targetRetirementAge}. Inflation alone adds ${fmt(inflationAdded * (1 / (inputs.swrPct / 100)))} to your FIRE number.`,
+			value: fmt(corpusImpact),
+			description: `Your ${fmtMonthly(inputs.monthlyExpenses)} expenses become ${fmtMonthly(futureAnnualExpenses / 12)} by age ${inputs.targetRetirementAge}. This is included in your FIRE number.`,
 			tone: "surprise",
 		});
 	}
 
-	// 5. Healthcare warning
-	if (inputs.monthlyHealthcareBudget > 0) {
-		const futureHealthcareAnnual =
-			inputs.monthlyHealthcareBudget *
-			12 *
-			(1 + inputs.healthcareInflationPct / 100) ** yearsToRetirement;
-		const healthcarePct = (futureHealthcareAnnual / futureAnnualExpenses) * 100;
-		if (healthcarePct > 15) {
-			insights.push({
-				id: "healthcare-warning",
-				title: "Healthcare creep",
-				value: `${Math.round(healthcarePct)}% of expenses`,
-				description: `Healthcare alone will cost ${fmtMonthly(futureHealthcareAnnual / 12)} by retirement — that's ${Math.round(healthcarePct)}% of your total expenses, up from ${Math.round(((inputs.monthlyHealthcareBudget * 12) / currentAnnual) * 100)}% today.`,
-				tone: "caution",
-			});
-		}
-	}
-
-	// 6. Coast FIRE
+	// 5. Coast FIRE
 	const coastPct = (inputs.existingSavings / coastFireNumber) * 100;
 	if (coastPct >= 30) {
 		insights.push({
@@ -214,39 +215,29 @@ export function buildFireInsights(data: {
 		});
 	}
 
-	// 7. SIP power
+	// 6. SIP power
 	if (inputs.monthlySip > 0) {
-		const monthlyRate = inputs.expectedReturnPct / 100 / 12;
 		const months = yearsToRetirement * 12;
-		const sipFv =
-			inputs.monthlySip *
-			(((1 + monthlyRate) ** months - 1) / monthlyRate) *
-			(1 + monthlyRate);
+		const sipFv = projectSipFutureValue(inputs, months);
+		const stepUpText =
+			inputs.annualSipStepUpPct > 0
+				? ` with a ${inputs.annualSipStepUpPct}% annual step-up`
+				: "";
 		insights.push({
 			id: "sip-power",
 			title: "SIP compounding power",
 			value: fmt(sipFv),
-			description: `Your ${fmtMonthly(inputs.monthlySip)} SIP alone will grow to ${fmt(sipFv)} over ${yearsToRetirement} years at ${inputs.expectedReturnPct}% returns. That's the magic of compounding.`,
+			description: `Your ${fmtMonthly(inputs.monthlySip)} SIP${stepUpText} will grow to ${fmt(sipFv)} over ${yearsToRetirement} years at ${inputs.expectedReturnPct}% returns.`,
 			tone: "positive",
 		});
 	}
 
-	// 8. EPF hidden wealth
-	if (epfCorpusAtRetirement > 0) {
-		const monthsCovered = epfCorpusAtRetirement / (futureAnnualExpenses / 12);
-		insights.push({
-			id: "epf-wealth",
-			title: "EPF hidden wealth",
-			value: fmt(epfCorpusAtRetirement),
-			description: `Your EPF will quietly build to ${fmt(epfCorpusAtRetirement)} by retirement — enough to cover ${Math.round(monthsCovered)} months of expenses.`,
-			tone: "surprise",
-		});
-	}
-
-	// 9. Expense multiplier shock
+	// 7. Expense multiplier shock
 	const perTenKCost =
-		(10000 * 12 * (1 + inputs.inflationPct / 100) ** yearsToRetirement) /
-		(inputs.swrPct / 100);
+		10000 *
+		12 *
+		(1 + inputs.inflationPct / 100) ** yearsToRetirement *
+		FIRE_MARKET_ASSUMPTIONS.corpusMultiple;
 	insights.push({
 		id: "expense-multiplier",
 		title: "The cost of lifestyle",

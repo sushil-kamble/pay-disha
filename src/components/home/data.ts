@@ -98,7 +98,7 @@ export const TOOLS: Tool[] = [
 		icon: Flame,
 		color: "text-[#ef4444]",
 		bg: "bg-[#ef4444]/10",
-		status: "cooking",
+		status: "live",
 		href: "/tools/fire",
 	},
 	{

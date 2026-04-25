@@ -1,146 +1,82 @@
 export type BuyVsRentVerdict = "buy" | "rent" | "close-call";
-export type BuyVsRentCityTier = "tier-1" | "tier-2" | "tier-3";
-export type AffordabilityBenchmarkId =
-	| "price-to-income"
-	| "emi-to-income"
-	| "age-repayment-fit";
+export type MarketType = "metro" | "large-city" | "smaller-city";
+export type ScenarioConfidence = "strong-signal" | "sensitive" | "close-call";
+export type AffordabilityBand = "comfortable" | "watch" | "stretched";
 
-export type InsightTone = "positive" | "neutral" | "caution";
-export type BenchmarkBand = "good" | "watch" | "risky";
-export type RecommendedTaxRegime = "new" | "old";
-
-export type ScenarioLabel =
-	| "lower-housing-upside"
-	| "base-case"
-	| "stronger-housing-market";
-
-export interface BuyVsRentInputs {
+export interface QuickInputs {
 	propertyPriceLakhs: number;
 	monthlyRent: number;
 	stayYears: number;
-	downPaymentLakhs: number;
-	homeLoanRatePct: number;
-	loanTenureYears: number;
-	annualCtcLakhs: number;
-	cityTier: BuyVsRentCityTier;
-	ageYears: number;
-	salaryGrowthPct: number;
-	startYear: number;
+	monthlyTakeHome: number;
+	availableCashLakhs: number;
 }
 
-export interface BuyVsRentMarketAssumptions {
-	investmentReturnPct: number;
-	inflationRatePct: number;
-	annualMaintenancePct: number;
-	annualOwnerFixedCosts: number;
-	purchaseCostPct: number;
-	saleCostPct: number;
-	rentDepositMonths: number;
-	rentBrokerageMonths: number;
-	propertyAppreciationPct: number;
+export interface AdvancedAssumptions {
+	marketType: MarketType;
+	loanRatePct: number;
+	loanTenureYears: number;
+	extraBuyingCostPct: number;
+	monthlyOwnerCost: number;
+	rentSetupCost: number;
 	rentIncreasePct: number;
+	propertyAppreciationPct: number;
+	investmentReturnPct: number;
+	saleCostPct: number;
 }
+
+export type BuyVsRentInputs = QuickInputs & AdvancedAssumptions;
 
 export interface BuyVsRentPoint {
 	year: number;
 	label: string;
-	propertyValue: number;
+	homeValue: number;
 	outstandingLoan: number;
-	buyHomeEquity: number;
-	buyInvestmentCorpus: number;
-	rentInvestmentCorpus: number;
-	rentDepositValue: number;
 	buyNetWorth: number;
 	rentNetWorth: number;
 	gap: number;
-	realBuyNetWorth: number;
-	realRentNetWorth: number;
-	realGap: number;
-	buyAnnualOutgo: number;
-	rentAnnualOutgo: number;
-	buyMonthlyOutgo: number;
-	rentMonthlyOutgo: number;
-	annualPrincipalPaid: number;
-	annualInterestPaid: number;
-	annualMaintenancePaid: number;
-	annualRentPaid: number;
-	monthlyTakeHomeOldRegime: number | null;
-	monthlyTakeHomeNewRegime: number | null;
-	monthlyTakeHomeRecommended: number | null;
-	buyStressRatio: number | null;
-	rentStressRatio: number | null;
+	buyMonthlyCost: number;
+	rentMonthlyCost: number;
+	buyerInvestments: number;
+	renterInvestments: number;
 }
 
-export interface AffordabilityBenchmark {
-	id: AffordabilityBenchmarkId;
+export interface AnswerChangingLever {
 	label: string;
 	value: string;
-	metricValue: number;
-	band: BenchmarkBand;
 	description: string;
+	tone: "buy" | "rent" | "neutral";
 }
 
-export interface BuyVsRentInsight {
-	title: string;
-	value: string;
-	description: string;
-	tone: InsightTone;
-}
-
-export interface BuyVsRentScenarioSummary {
-	label: ScenarioLabel;
+export interface ScenarioResult {
+	name: "Conservative" | "Balanced" | "Optimistic";
 	verdict: BuyVsRentVerdict;
 	gap: number;
-	buyNetWorth: number;
-	rentNetWorth: number;
-	propertyAppreciationPct: number;
-	investmentReturnPct: number;
-	rentIncreasePct: number;
 }
 
-export interface BuyVsRentSummary {
+export interface DecisionResult {
 	verdict: BuyVsRentVerdict;
-	confidence: "high" | "medium" | "low";
-	story: string;
-	horizonYears: number;
-	financialGap: number;
+	confidence: ScenarioConfidence;
+	headline: string;
+	explanation: string;
+	wealthGap: number;
+	breakEvenYear: number | null;
+	buyMonthlyPressure: number | null;
+	rentMonthlyPressure: number | null;
+	affordabilityBand: AffordabilityBand;
+	upfrontCashNeeded: number;
+	cashShortfall: number;
+	liquidityNote: string;
+	monthlyBuyCost: number;
+	monthlyRentCost: number;
 	buyNetWorth: number;
 	rentNetWorth: number;
-	breakEvenYear: number | null;
-	upfrontBuyCash: number;
-	upfrontRentCash: number;
-	upfrontGap: number;
-	firstYearBuyMonthlyOutgo: number;
-	firstYearRentMonthlyOutgo: number;
-	finalYearBuyMonthlyOutgo: number;
-	finalYearRentMonthlyOutgo: number;
-	finalHomeEquity: number;
-	finalBuyInvestmentCorpus: number;
-	monthlyTakeHomeOldRegime: number | null;
-	monthlyTakeHomeNewRegime: number | null;
-	monthlyTakeHomeRecommended: number | null;
-	finalYearMonthlyTakeHomeRecommended: number | null;
-	recommendedTaxRegime: RecommendedTaxRegime | null;
-	recommendedTaxRegimeNote: string;
-	buyStressRatio: number | null;
-	rentStressRatio: number | null;
-	finalYearBuyStressRatio: number | null;
-	finalYearRentStressRatio: number | null;
-	priceToIncomeRatio: number;
-	priceToIncomeBand: BenchmarkBand;
-	emiToIncomeRatio: number | null;
-	emiToIncomeBand: BenchmarkBand | null;
-	ageTenureBand: BenchmarkBand | null;
-	affordabilityBenchmarks: AffordabilityBenchmark[];
-	buyCatchUpYear: number | null;
-	reasons: string[];
-	decisionNote: string;
-	insights: BuyVsRentInsight[];
-	scenarios: BuyVsRentScenarioSummary[];
+	keyDrivers: string[];
+	answerChangingLevers: AnswerChangingLever[];
+	scenarios: ScenarioResult[];
 }
 
 export interface BuyVsRentResult {
 	inputs: BuyVsRentInputs;
 	points: BuyVsRentPoint[];
-	summary: BuyVsRentSummary;
+	decision: DecisionResult;
 }

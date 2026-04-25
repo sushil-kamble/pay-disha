@@ -1,7 +1,5 @@
 import {
 	ChevronDown,
-	Flame,
-	HeartPulse,
 	Info,
 	PiggyBank,
 	RefreshCcw,
@@ -57,7 +55,6 @@ import {
 import { cn } from "#/lib/utils";
 import { calculateFire, formatCurrency } from "#/tools/fire/calculator";
 import {
-	CORPUS_MILESTONES,
 	FIRE_DEFAULTS,
 	FIRE_EDUCATION,
 	FIRE_LIMITS,
@@ -78,13 +75,13 @@ type FireInputDraft = Record<keyof FireInputs, string>;
 type PersistedFireState = {
 	draft: FireInputDraft;
 	accuracyOpen: boolean;
-	fineTuneOpen: boolean;
 	tableOpen: boolean;
 };
 
 const FIRE_INPUT_KEYS = Object.keys(FIRE_DEFAULTS) as Array<keyof FireInputs>;
 
 const surfaceClassName = "rounded-2xl border border-border bg-card shadow-sm";
+const sectionPaddingClassName = "p-5 sm:p-6 md:p-7";
 const subSurfaceClassName = "rounded-xl border border-border bg-muted/40";
 
 function createDraft(inputs: FireInputs): FireInputDraft {
@@ -94,13 +91,9 @@ function createDraft(inputs: FireInputs): FireInputDraft {
 		existingSavings: String(inputs.existingSavings),
 		targetRetirementAge: String(inputs.targetRetirementAge),
 		monthlySip: String(inputs.monthlySip),
+		annualSipStepUpPct: String(inputs.annualSipStepUpPct),
 		expectedReturnPct: String(inputs.expectedReturnPct),
 		inflationPct: String(inputs.inflationPct),
-		swrPct: String(inputs.swrPct),
-		healthcareInflationPct: String(inputs.healthcareInflationPct),
-		monthlyHealthcareBudget: String(inputs.monthlyHealthcareBudget),
-		epfMonthlyContribution: String(inputs.epfMonthlyContribution),
-		epfInterestPct: String(inputs.epfInterestPct),
 	};
 }
 
@@ -112,6 +105,17 @@ function isFireInputDraft(value: unknown): value is FireInputDraft {
 	if (!isRecord(value)) return false;
 
 	return FIRE_INPUT_KEYS.every((key) => typeof value[key] === "string");
+}
+
+function normalizeStoredFireInputDraft(value: unknown): FireInputDraft | null {
+	if (!isRecord(value)) return null;
+
+	const mergedDraft = {
+		...createDraft(FIRE_DEFAULTS),
+		...value,
+	};
+
+	return isFireInputDraft(mergedDraft) ? mergedDraft : null;
 }
 
 function parseStoredJson(rawValue: string | null) {
@@ -127,16 +131,20 @@ function parseStoredJson(rawValue: string | null) {
 function loadStoredFireState(): PersistedFireState | null {
 	const parsed = parseStoredJson(window.localStorage.getItem(FIRE_STORAGE_KEY));
 	if (!isRecord(parsed)) return null;
+	const draft = normalizeStoredFireInputDraft(parsed.draft);
 	if (
-		!isFireInputDraft(parsed.draft) ||
+		!draft ||
 		typeof parsed.accuracyOpen !== "boolean" ||
-		typeof parsed.fineTuneOpen !== "boolean" ||
 		typeof parsed.tableOpen !== "boolean"
 	) {
 		return null;
 	}
 
-	return parsed as PersistedFireState;
+	return {
+		draft,
+		accuracyOpen: parsed.accuracyOpen,
+		tableOpen: parsed.tableOpen,
+	};
 }
 
 function saveStoredFireState(value: PersistedFireState) {
@@ -197,6 +205,11 @@ function buildInputsFromDraft(draft: FireInputDraft): FireInputs {
 			FIRE_LIMITS.minMonthlySip,
 			FIRE_LIMITS.maxMonthlySip,
 		),
+		annualSipStepUpPct: clamp(
+			parseNumber(draft.annualSipStepUpPct, FIRE_DEFAULTS.annualSipStepUpPct),
+			FIRE_LIMITS.minAnnualSipStepUpPct,
+			FIRE_LIMITS.maxAnnualSipStepUpPct,
+		),
 		expectedReturnPct: clamp(
 			parseNumber(draft.expectedReturnPct, FIRE_DEFAULTS.expectedReturnPct),
 			FIRE_LIMITS.minExpectedReturnPct,
@@ -206,40 +219,6 @@ function buildInputsFromDraft(draft: FireInputDraft): FireInputs {
 			parseNumber(draft.inflationPct, FIRE_DEFAULTS.inflationPct),
 			FIRE_LIMITS.minInflationPct,
 			FIRE_LIMITS.maxInflationPct,
-		),
-		swrPct: clamp(
-			parseNumber(draft.swrPct, FIRE_DEFAULTS.swrPct),
-			FIRE_LIMITS.minSwrPct,
-			FIRE_LIMITS.maxSwrPct,
-		),
-		healthcareInflationPct: clamp(
-			parseNumber(
-				draft.healthcareInflationPct,
-				FIRE_DEFAULTS.healthcareInflationPct,
-			),
-			FIRE_LIMITS.minHealthcareInflationPct,
-			FIRE_LIMITS.maxHealthcareInflationPct,
-		),
-		monthlyHealthcareBudget: clamp(
-			parseNumber(
-				draft.monthlyHealthcareBudget,
-				FIRE_DEFAULTS.monthlyHealthcareBudget,
-			),
-			FIRE_LIMITS.minMonthlyHealthcare,
-			FIRE_LIMITS.maxMonthlyHealthcare,
-		),
-		epfMonthlyContribution: clamp(
-			parseNumber(
-				draft.epfMonthlyContribution,
-				FIRE_DEFAULTS.epfMonthlyContribution,
-			),
-			FIRE_LIMITS.minEpfContribution,
-			FIRE_LIMITS.maxEpfContribution,
-		),
-		epfInterestPct: clamp(
-			parseNumber(draft.epfInterestPct, FIRE_DEFAULTS.epfInterestPct),
-			FIRE_LIMITS.minEpfInterestPct,
-			FIRE_LIMITS.maxEpfInterestPct,
 		),
 	};
 }
@@ -258,7 +237,6 @@ function getCompactInsights(insights: FireInsight[]) {
 		"timeline",
 		"retirement-gap",
 		"inflation-shock",
-		"epf-wealth",
 		"coast-fire",
 		"sip-power",
 		"expense-multiplier",
@@ -273,15 +251,15 @@ function getCompactInsights(insights: FireInsight[]) {
 
 function getInsightToneClasses(tone: FireInsight["tone"]) {
 	if (tone === "positive") {
-		return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100";
+		return "border-emerald-200 bg-emerald-50/80 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100";
 	}
 
 	if (tone === "caution") {
-		return "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100";
+		return "border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100";
 	}
 
 	if (tone === "surprise") {
-		return "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/30 dark:text-cyan-100";
+		return "border-cyan-200 bg-cyan-50/80 text-cyan-900 dark:border-cyan-900 dark:bg-cyan-950/30 dark:text-cyan-100";
 	}
 
 	return "border-border bg-muted/40 text-foreground";
@@ -326,17 +304,23 @@ function SectionHeading({
 }: {
 	kicker: string;
 	title: string;
-	description: string;
+	description?: string;
 	action?: React.ReactNode;
 }) {
 	return (
-		<div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-			<div>
-				<p className="text-sm font-semibold text-primary">{kicker}</p>
-				<h2 className="mt-1 text-2xl font-semibold text-foreground">{title}</h2>
-				<p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
-					{description}
+		<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+			<div className="min-w-0">
+				<p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+					{kicker}
 				</p>
+				<h2 className="mt-1 text-xl font-semibold text-foreground md:text-2xl">
+					{title}
+				</h2>
+				{description ? (
+					<p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+						{description}
+					</p>
+				) : null}
 			</div>
 			{action ? <div className="shrink-0">{action}</div> : null}
 		</div>
@@ -367,7 +351,7 @@ function NumberField({
 	return (
 		<div className="grid gap-2">
 			<div className="flex items-center gap-1.5">
-				<Label htmlFor={id} className="text-sm font-medium text-foreground">
+				<Label htmlFor={id} className="text-xs font-medium text-foreground">
 					{label}
 				</Label>
 				{tooltip ? <TooltipInfo text={tooltip} /> : null}
@@ -408,8 +392,6 @@ function InputPanel({
 	onFieldChange,
 	accuracyOpen,
 	onAccuracyOpenChange,
-	fineTuneOpen,
-	onFineTuneOpenChange,
 	onReset,
 	loadedFromStorage,
 }: {
@@ -417,13 +399,11 @@ function InputPanel({
 	onFieldChange: (key: keyof FireInputs, value: string) => void;
 	accuracyOpen: boolean;
 	onAccuracyOpenChange: (open: boolean) => void;
-	fineTuneOpen: boolean;
-	onFineTuneOpenChange: (open: boolean) => void;
 	onReset: () => void;
 	loadedFromStorage: boolean;
 }) {
 	return (
-		<div className={cn(surfaceClassName, "p-5 lg:sticky lg:top-24 lg:p-6")}>
+		<div className={cn(surfaceClassName, "p-5 lg:p-6")}>
 			<div className="flex items-start justify-between gap-3">
 				<div>
 					<p className="text-sm font-semibold text-primary">Calculator</p>
@@ -454,7 +434,7 @@ function InputPanel({
 					value={draft.monthlyExpenses}
 					onChange={(value) => onFieldChange("monthlyExpenses", value)}
 					prefix="₹"
-					helper="What you spend today, not what you earn."
+					helper="What you spend each month, not what you earn."
 				/>
 				<NumberField
 					id="existing-savings"
@@ -486,7 +466,7 @@ function InputPanel({
 								type="button"
 								variant="ghost"
 								size="sm"
-								className="h-8 px-2"
+								className="h-8 px-2 text-foreground hover:bg-primary/10 hover:text-primary focus-visible:ring-primary/40"
 							>
 								{accuracyOpen ? "Hide" : "Show"}
 								<ChevronDown
@@ -500,7 +480,7 @@ function InputPanel({
 					</div>
 
 					<CollapsibleContent className="mt-5 space-y-5">
-						<div className="grid gap-5 sm:grid-cols-2">
+						<div className="grid gap-5">
 							<NumberField
 								id="target-retirement-age"
 								label="Target Retirement Age"
@@ -509,6 +489,7 @@ function InputPanel({
 									onFieldChange("targetRetirementAge", value)
 								}
 								suffix="years"
+								helper="The age by which you want work to become optional."
 							/>
 							<NumberField
 								id="monthly-sip"
@@ -516,6 +497,15 @@ function InputPanel({
 								value={draft.monthlySip}
 								onChange={(value) => onFieldChange("monthlySip", value)}
 								prefix="₹"
+								helper="Your current monthly investment toward FIRE."
+							/>
+							<NumberField
+								id="annual-sip-step-up"
+								label="Annual SIP Step-up"
+								value={draft.annualSipStepUpPct}
+								onChange={(value) => onFieldChange("annualSipStepUpPct", value)}
+								suffix="%"
+								helper={FIRE_EDUCATION.stepUp}
 							/>
 							<NumberField
 								id="expected-return"
@@ -523,7 +513,7 @@ function InputPanel({
 								value={draft.expectedReturnPct}
 								onChange={(value) => onFieldChange("expectedReturnPct", value)}
 								suffix="%"
-								tooltip={FIRE_EDUCATION.returns}
+								helper={FIRE_EDUCATION.returns}
 							/>
 							<NumberField
 								id="inflation-rate"
@@ -531,89 +521,7 @@ function InputPanel({
 								value={draft.inflationPct}
 								onChange={(value) => onFieldChange("inflationPct", value)}
 								suffix="%"
-								tooltip={FIRE_EDUCATION.inflation}
-							/>
-						</div>
-					</CollapsibleContent>
-				</div>
-			</Collapsible>
-
-			<Collapsible open={fineTuneOpen} onOpenChange={onFineTuneOpenChange}>
-				<div className={cn(subSurfaceClassName, "mt-4 p-4")}>
-					<div className="flex items-start justify-between gap-3">
-						<div>
-							<div className="flex items-center gap-1.5">
-								<h3 className="text-sm font-medium text-foreground">
-									India Specifics
-								</h3>
-							</div>
-							<p className="mt-1 text-xs text-muted-foreground">
-								Safe withdrawal, healthcare, and EPF assumptions.
-							</p>
-						</div>
-						<CollapsibleTrigger asChild>
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								className="h-8 px-2"
-							>
-								{fineTuneOpen ? "Hide" : "Show"}
-								<ChevronDown
-									className={cn(
-										"ml-1 size-4 transition-transform",
-										fineTuneOpen ? "rotate-180" : undefined,
-									)}
-								/>
-							</Button>
-						</CollapsibleTrigger>
-					</div>
-
-					<CollapsibleContent className="mt-5 space-y-5">
-						<div className="grid gap-5 sm:grid-cols-2">
-							<NumberField
-								id="swr-rate"
-								label="Safe Withdrawal Rate"
-								value={draft.swrPct}
-								onChange={(value) => onFieldChange("swrPct", value)}
-								suffix="%"
-								tooltip={FIRE_EDUCATION.swr}
-							/>
-							<NumberField
-								id="healthcare-inflation"
-								label="Healthcare Inflation"
-								value={draft.healthcareInflationPct}
-								onChange={(value) =>
-									onFieldChange("healthcareInflationPct", value)
-								}
-								suffix="%"
-								tooltip={FIRE_EDUCATION.healthcareInflation}
-							/>
-							<NumberField
-								id="healthcare-budget"
-								label="Monthly Healthcare Budget"
-								value={draft.monthlyHealthcareBudget}
-								onChange={(value) =>
-									onFieldChange("monthlyHealthcareBudget", value)
-								}
-								prefix="₹"
-							/>
-							<NumberField
-								id="epf-monthly"
-								label="EPF Monthly Contribution"
-								value={draft.epfMonthlyContribution}
-								onChange={(value) =>
-									onFieldChange("epfMonthlyContribution", value)
-								}
-								prefix="₹"
-								tooltip={FIRE_EDUCATION.epf}
-							/>
-							<NumberField
-								id="epf-interest"
-								label="EPF Interest Rate"
-								value={draft.epfInterestPct}
-								onChange={(value) => onFieldChange("epfInterestPct", value)}
-								suffix="%"
+								helper={FIRE_EDUCATION.inflation}
 							/>
 						</div>
 					</CollapsibleContent>
@@ -631,39 +539,21 @@ function InputPanel({
 }
 
 function HeroCard({ result }: { result: FireResult }) {
-	const onTrack =
-		result.fireAge !== null &&
-		result.fireAge <= result.inputs.targetRetirementAge;
 	const bestLever =
 		result.leverScenarios.find((lever) => lever.impact !== "low") ??
 		result.leverScenarios[0];
 
 	return (
-		<section className={cn(surfaceClassName, "overflow-hidden p-6 md:p-8")}>
-			{/* Badges: on-track status first, then FIRE Number, then multiplier */}
-			<div className="flex flex-wrap items-center gap-2 mb-6">
-				<Badge
-					variant="outline"
-					className={cn(
-						onTrack
-							? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400"
-							: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-400",
-					)}
-				>
-					{onTrack ? "On Track" : "Needs Adjustment"}
-				</Badge>
-				<Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent">
-					<Flame className="mr-1 size-3.5" />
-					FIRE Number
-				</Badge>
-				<Badge variant="outline" className="border-border">
-					{result.fireMultiplier.toFixed(1)}x Yearly Spend
-				</Badge>
-			</div>
-
+		<section
+			className={cn(
+				surfaceClassName,
+				sectionPaddingClassName,
+				"overflow-hidden",
+			)}
+		>
 			{/* Target corpus label + big number (whitespace-nowrap keeps Cr on same line) */}
-			<p className="text-sm font-medium text-muted-foreground">
-				Your Target Corpus
+			<p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+				FIRE Number
 			</p>
 			<div className="mt-2">
 				<h2 className="display-title text-5xl font-bold tracking-tight text-foreground md:text-7xl whitespace-nowrap">
@@ -672,7 +562,7 @@ function HeroCard({ result }: { result: FireResult }) {
 			</div>
 
 			{/* Four metric cards — 2 per row — below the corpus number */}
-			<div className="mt-8 grid gap-3 sm:grid-cols-2">
+			<div className="mt-6 grid gap-3 sm:grid-cols-2">
 				<MetricCard
 					label="Current Pace"
 					value={
@@ -712,12 +602,12 @@ function HeroCard({ result }: { result: FireResult }) {
 			</div>
 
 			{/* Description */}
-			<p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
-				To retire comfortably at age{" "}
-				<strong>{result.inputs.targetRetirementAge}</strong>, you need to build
-				this corpus. It accounts for a monthly spending of{" "}
-				<strong>{formatMonthly(result.futureMonthlyExpenses)}</strong> and
-				assumes a conservative withdrawal rate to beat Indian inflation.
+			<p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+				<strong>{formatCurrency(result.fireNumber)}</strong> is the estimated
+				corpus you would need by age{" "}
+				<strong>{result.inputs.targetRetirementAge}</strong> for your
+				investments to support your expected expenses without relying on a
+				salary.
 			</p>
 
 			{/* Best next move */}
@@ -725,22 +615,26 @@ function HeroCard({ result }: { result: FireResult }) {
 				<div
 					className={cn(
 						subSurfaceClassName,
-						"mt-8 border-l-4 border-l-primary p-5",
+						"mt-4 flex items-center justify-between gap-3 border-primary/20 bg-primary/5 px-4 py-3",
 					)}
 				>
-					<p className="text-xs font-semibold uppercase tracking-wider text-primary">
-						Best Next Move
-					</p>
-					<p className="mt-1.5 text-base font-medium text-foreground">
-						{bestLever.label}
-					</p>
-					<p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-						{bestLever.yearsSaved && bestLever.yearsSaved > 0
-							? `Reach FIRE ${bestLever.yearsSaved.toFixed(
-									bestLever.yearsSaved % 1 === 0 ? 0 : 1,
-								)} years earlier`
-							: bestLever.description}
-					</p>
+					<div className="min-w-0">
+						<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+							Next move
+						</p>
+						<p className="truncate text-sm font-semibold text-foreground">
+							{bestLever.label}
+						</p>
+					</div>
+					<div className="flex shrink-0 items-center gap-2 text-right">
+						<p className="hidden text-xs font-medium text-muted-foreground sm:block">
+							{bestLever.yearsSaved && bestLever.yearsSaved > 0
+								? `${bestLever.yearsSaved.toFixed(
+										bestLever.yearsSaved % 1 === 0 ? 0 : 1,
+									)} years earlier`
+								: "See why"}
+						</p>
+					</div>
 				</div>
 			) : null}
 		</section>
@@ -759,13 +653,15 @@ function MetricCard({
 	icon: React.ComponentType<{ className?: string }>;
 }) {
 	return (
-		<div className="rounded-xl border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50">
-			<div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-				<Icon className="size-4 text-primary" />
+		<div className="rounded-xl border border-border/60 bg-muted/30 p-4 transition-colors hover:bg-muted/50">
+			<div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+				<Icon className="size-3.5 text-primary" />
 				{label}
 			</div>
-			<p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
-			<p className="mt-1 text-xs text-muted-foreground">{subtext}</p>
+			<p className="mt-2 text-lg font-bold text-foreground">{value}</p>
+			<p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+				{subtext}
+			</p>
 		</div>
 	);
 }
@@ -774,57 +670,60 @@ function StrategySection({ result }: { result: FireResult }) {
 	const primaryLevers = result.leverScenarios.slice(0, 4);
 
 	return (
-		<section className={cn(surfaceClassName, "p-6 md:p-8")}>
+		<section className={cn(surfaceClassName, sectionPaddingClassName)}>
 			<SectionHeading
 				kicker="Strategy"
-				title="Optimize Your Plan"
-				description="Explore how different paths and assumptions change your timeline."
+				title="Optimize your plan"
+				description="Different levers and paths that reshape your timeline."
 			/>
-			<Tabs defaultValue="moves" className="mt-6">
-				<TabsList className="grid w-full max-w-md grid-cols-3 rounded-lg bg-muted p-1">
-					<TabsTrigger value="moves" className="rounded-md">
+			<Tabs defaultValue="moves" className="mt-5">
+				<TabsList className="grid w-full grid-cols-3 rounded-lg bg-muted p-1 sm:max-w-md">
+					<TabsTrigger value="moves" className="rounded-md text-xs sm:text-sm">
 						Key Levers
 					</TabsTrigger>
-					<TabsTrigger value="paths" className="rounded-md">
+					<TabsTrigger value="paths" className="rounded-md text-xs sm:text-sm">
 						FIRE Types
 					</TabsTrigger>
-					<TabsTrigger value="assumptions" className="rounded-md">
+					<TabsTrigger
+						value="assumptions"
+						className="rounded-md text-xs sm:text-sm"
+					>
 						Assumptions
 					</TabsTrigger>
 				</TabsList>
 
-				<TabsContent value="moves" className="mt-6">
-					<div className="grid gap-4 md:grid-cols-2">
+				<TabsContent value="moves" className="mt-4">
+					<div className="grid gap-3 sm:grid-cols-2">
 						{primaryLevers.map((scenario) => (
 							<ScenarioCard key={scenario.id} scenario={scenario} />
 						))}
 					</div>
 				</TabsContent>
 
-				<TabsContent value="paths" className="mt-6">
-					<div className="grid gap-4 md:grid-cols-2">
+				<TabsContent value="paths" className="mt-4">
+					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{result.fireTypes.map((typeResult) => (
 							<FireTypeCard key={typeResult.type} typeResult={typeResult} />
 						))}
 					</div>
 				</TabsContent>
 
-				<TabsContent value="assumptions" className="mt-6">
-					<div className="grid gap-4 md:grid-cols-3">
+				<TabsContent value="assumptions" className="mt-4">
+					<div className="grid gap-2.5">
 						<AssumptionCard
 							icon={ShieldAlert}
-							title="3% Withdrawal Rate"
-							body="A more conservative approach than the default 4% rule. Vital in India to weather inflation and sequence-of-returns risk."
+							title="33x Corpus Multiple"
+							body="Conservative India-oriented benchmark — 33× your inflated annual expenses at target age."
 						/>
 						<AssumptionCard
-							icon={HeartPulse}
-							title="Separate Healthcare"
-							body="Medical costs rise faster than generic inflation. Modeling them separately prevents late-life financial shocks."
+							icon={TrendingUp}
+							title="Inflation-Adjusted Spending"
+							body="Monthly expenses are inflated to your target age before calculating the FIRE number."
 						/>
 						<AssumptionCard
 							icon={PiggyBank}
-							title="EPF Inclusion"
-							body="Your Employee Provident Fund is a significant debt component. Excluding it results in an unnecessarily bloated equity target."
+							title="Liquid Corpus Only"
+							body="Existing savings + SIP growth are treated as the investable FIRE corpus."
 						/>
 					</div>
 				</TabsContent>
@@ -839,20 +738,15 @@ function FireTypeCard({ typeResult }: { typeResult: FireTypeResult }) {
 	return (
 		<div
 			className={cn(
-				"h-full rounded-xl border p-5 transition-colors",
+				"flex h-full flex-col rounded-xl border p-4 transition-colors",
 				"border-border/60 bg-muted/20 hover:bg-muted/40",
 				config.darkBg,
 			)}
 		>
-			<div className="flex items-start justify-between gap-3">
-				<div>
-					<p className={cn("text-base font-semibold", config.color)}>
-						{typeResult.label}
-					</p>
-					<p className="mt-1.5 text-xs text-muted-foreground">
-						{typeResult.description}
-					</p>
-				</div>
+			<div className="flex items-center justify-between gap-2">
+				<p className={cn("text-sm font-semibold", config.color)}>
+					{typeResult.label}
+				</p>
 				<Badge
 					variant="outline"
 					className="bg-background/80 shrink-0 text-[10px]"
@@ -860,16 +754,17 @@ function FireTypeCard({ typeResult }: { typeResult: FireTypeResult }) {
 					{getTypeBadge(typeResult)}
 				</Badge>
 			</div>
-			<div className="mt-6">
-				<p className="text-2xl font-bold text-foreground">
-					{typeResult.type === "barista"
-						? formatMonthly(typeResult.number)
-						: formatCurrency(typeResult.number)}
-				</p>
-				<p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-					{getTypeSubtext(typeResult)}
-				</p>
-			</div>
+			<p className="mt-2 text-lg font-bold text-foreground">
+				{typeResult.type === "barista"
+					? formatMonthly(typeResult.number)
+					: formatCurrency(typeResult.number)}
+			</p>
+			<p className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+				{typeResult.description}
+			</p>
+			<p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
+				{getTypeSubtext(typeResult)}
+			</p>
 		</div>
 	);
 }
@@ -901,61 +796,64 @@ function getTypeSubtext(typeResult: FireTypeResult) {
 
 	if (typeResult.type === "barista") {
 		return typeResult.number === 0
-			? "Your portfolio currently covers expenses at your chosen withdrawal rate."
-			: "The side income you need each month if you semi-retired today.";
+			? "Your portfolio currently covers expenses under the configured corpus model."
+			: "The side income you need each month if you semi-retired now.";
 	}
 
 	if (typeResult.yearsToReach === null) {
 		return "Not visible within the next 50 years at your current pace.";
 	}
 
-	return `At today's pace, you reach this milestone in ${formatYears(typeResult.yearsToReach)}.`;
+	return `At your current pace, you reach this milestone in ${formatYears(typeResult.yearsToReach)}.`;
 }
 
 function ScenarioCard({ scenario }: { scenario: LeverScenario }) {
+	const yearsSaved = scenario.yearsSaved ?? 0;
+	const headline =
+		yearsSaved > 0
+			? `${yearsSaved.toFixed(yearsSaved % 1 === 0 ? 0 : 1)}y sooner`
+			: scenario.newYearsToFire !== null
+				? formatYears(scenario.newYearsToFire)
+				: "Needs more";
+
 	return (
-		<div className={cn(subSurfaceClassName, "h-full p-5")}>
-			<div className="flex items-start justify-between gap-3">
-				<p className="text-sm font-semibold text-foreground">
+		<div
+			className={cn(
+				"flex h-full flex-col rounded-xl border border-border/60 bg-muted/30 p-4 transition-colors hover:bg-muted/50",
+			)}
+		>
+			<div className="flex items-start justify-between gap-2">
+				<p className="text-sm font-semibold leading-snug text-foreground">
 					{scenario.label}
 				</p>
 				<Badge
 					variant="outline"
 					className={cn(
-						"capitalize text-[10px]",
+						"shrink-0 capitalize text-[10px]",
 						getImpactClasses(scenario.impact),
 					)}
 				>
-					{scenario.impact} Impact
+					{scenario.impact}
 				</Badge>
 			</div>
-			<p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+			<div className="mt-3 flex items-baseline gap-2">
+				<p
+					className={cn(
+						"text-xl font-bold tracking-tight",
+						yearsSaved > 0
+							? "text-emerald-600 dark:text-emerald-400"
+							: "text-foreground",
+					)}
+				>
+					{headline}
+				</p>
+				<span className="text-[11px] text-muted-foreground">
+					→ {formatCurrency(scenario.newFireNumber)}
+				</span>
+			</div>
+			<p className="mt-2 text-xs leading-relaxed text-muted-foreground">
 				{scenario.description}
 			</p>
-			<div className="mt-5 grid gap-3">
-				<div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2.5">
-					<p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-						New Target
-					</p>
-					<p className="mt-1 text-sm font-semibold text-foreground">
-						{formatCurrency(scenario.newFireNumber)}
-					</p>
-				</div>
-				<div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2.5">
-					<p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-						Timeline
-					</p>
-					<p className="mt-1 text-sm font-semibold text-foreground">
-						{scenario.yearsSaved !== null && scenario.yearsSaved > 0
-							? `${scenario.yearsSaved.toFixed(
-									scenario.yearsSaved % 1 === 0 ? 0 : 1,
-								)} years earlier`
-							: scenario.newYearsToFire !== null
-								? formatYears(scenario.newYearsToFire)
-								: "Needs further adjustment"}
-					</p>
-				</div>
-			</div>
 		</div>
 	);
 }
@@ -970,16 +868,16 @@ function AssumptionCard({
 	body: string;
 }) {
 	return (
-		<div className={cn(subSurfaceClassName, "h-full p-5")}>
-			<div className="flex items-center gap-3">
-				<span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-					<Icon className="size-5" />
-				</span>
-				<h3 className="text-base font-semibold text-foreground">{title}</h3>
+		<div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+			<span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+				<Icon className="size-4" />
+			</span>
+			<div className="min-w-0">
+				<h3 className="text-sm font-semibold text-foreground">{title}</h3>
+				<p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+					{body}
+				</p>
 			</div>
-			<p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-				{body}
-			</p>
 		</div>
 	);
 }
@@ -997,77 +895,33 @@ function ProjectionSection({ result }: { result: FireResult }) {
 		},
 	};
 
+	const crossoverPoint = result.projectionPoints.find(
+		(point) => point.corpus >= point.fireTarget,
+	);
+
 	const chartData = result.projectionPoints.map((point) => ({
 		label: point.year === 0 ? "Now" : `Age ${point.age}`,
 		age: point.age,
 		corpus: point.corpus,
 		fireTarget: point.fireTarget,
 		annualExpenses: point.annualExpenses,
-		epfCorpus: point.epfCorpus,
-		totalWealth: point.totalWealth,
 	}));
 
-	const crossoverPoint = result.projectionPoints.find(
-		(point) => point.corpus >= point.fireTarget,
-	);
-	const milestonePoints = CORPUS_MILESTONES.map((milestone) => {
-		const point = result.projectionPoints.find(
-			(projection) => projection.corpus >= milestone.value,
-		);
-
-		if (!point) return null;
-
-		return {
-			...point,
-			label: point.year === 0 ? "Now" : `Age ${point.age}`,
-			milestoneLabel: milestone.label,
-		};
-	}).filter(
-		(
-			point,
-		): point is FireProjectionPoint & {
-			label: string;
-			milestoneLabel: string;
-		} => Boolean(point),
-	);
-
 	return (
-		<section className={cn(surfaceClassName, "p-6 md:p-8")}>
+		<section className={cn(surfaceClassName, sectionPaddingClassName)}>
 			<SectionHeading
 				kicker="Trajectory"
 				title="Wealth Projection"
-				description="Watch your investments grow alongside your shifting target. The crossover is where work becomes optional."
-				action={
-					<div
-						className={cn(
-							"rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-right",
-						)}
-					>
-						<p className="text-sm font-semibold text-primary">
-							{crossoverPoint
-								? `Crossover at Age ${crossoverPoint.age}`
-								: "No Crossover Yet"}
-						</p>
-						<p className="mt-0.5 text-xs text-muted-foreground">
-							{crossoverPoint
-								? `${formatCurrency(crossoverPoint.corpus)} > ${formatCurrency(crossoverPoint.fireTarget)}`
-								: "Keep tweaking levers."}
-						</p>
-					</div>
-				}
+				description="Corpus growth vs your inflation-adjusted FIRE number."
 			/>
 
-			<div className="mt-6 space-y-6">
-				<div
-					className={cn(
-						"rounded-xl border border-border bg-card p-4 shadow-sm",
-					)}
-				>
-					<ChartContainer config={chartConfig} className="h-80 w-full">
+			<div className="mt-5 space-y-5">
+				<div className="rounded-xl border border-border/60 bg-card p-3 shadow-sm md:p-4">
+					<ChartContainer config={chartConfig} className="h-88 w-full">
 						<ComposedChart
 							accessibilityLayer
 							data={chartData}
-							margin={{ top: 12, right: 12, left: 4, bottom: 8 }}
+							margin={{ top: 28, right: 12, left: 4, bottom: 8 }}
 						>
 							<CartesianGrid
 								vertical={false}
@@ -1166,8 +1020,15 @@ function ProjectionSection({ result }: { result: FireResult }) {
 											: `Age ${crossoverPoint.age}`
 									}
 									stroke="var(--color-primary)"
-									strokeDasharray="4 4"
-									opacity={0.6}
+									strokeWidth={2}
+									strokeDasharray="5 4"
+									label={{
+										value: `FIRE @ ${crossoverPoint.age}`,
+										position: "top",
+										fill: "var(--color-primary)",
+										fontSize: 12,
+										fontWeight: 700,
+									}}
 								/>
 							) : null}
 							{crossoverPoint ? (
@@ -1178,41 +1039,34 @@ function ProjectionSection({ result }: { result: FireResult }) {
 											: `Age ${crossoverPoint.age}`
 									}
 									y={crossoverPoint.corpus}
-									r={6}
+									r={9}
 									fill="var(--color-primary)"
 									stroke="var(--color-background)"
-									strokeWidth={2}
+									strokeWidth={3}
 								/>
 							) : null}
-							{milestonePoints.map((point) => (
-								<ReferenceDot
-									key={`${point.milestoneLabel}-${point.age}`}
-									x={point.label}
-									y={point.corpus}
-									r={4}
-									fill="var(--color-corpus)"
-									stroke="var(--color-background)"
-									strokeWidth={1.5}
-								/>
-							))}
 						</ComposedChart>
 					</ChartContainer>
 				</div>
 
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid gap-3 sm:grid-cols-2">
 					{compactInsights.map((insight) => (
 						<div
 							key={insight.id}
 							className={cn(
-								"rounded-xl border p-5 transition-colors",
+								"rounded-xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors",
 								getInsightToneClasses(insight.tone),
 							)}
 						>
-							<p className="text-xs font-semibold uppercase tracking-wider opacity-80">
-								{insight.title}
-							</p>
-							<p className="mt-2 text-2xl font-bold">{insight.value}</p>
-							<p className="mt-2 text-sm leading-relaxed opacity-90">
+							<div className="flex items-start justify-between gap-4">
+								<p className="text-sm font-bold leading-snug opacity-80">
+									{insight.title}
+								</p>
+								<p className="shrink-0 text-right text-2xl font-extrabold leading-none tracking-tight">
+									{insight.value}
+								</p>
+							</div>
+							<p className="mt-3 text-sm leading-relaxed opacity-85">
 								{insight.description}
 							</p>
 						</div>
@@ -1233,25 +1087,31 @@ function YearByYearTable({
 	onOpenChange: (open: boolean) => void;
 }) {
 	return (
-		<section className={cn(surfaceClassName, "p-6 md:p-8")}>
+		<section className={cn(surfaceClassName, sectionPaddingClassName)}>
 			<Collapsible open={open} onOpenChange={onOpenChange}>
-				<div className="flex items-start justify-between gap-3">
-					<div>
-						<p className="text-sm font-semibold text-primary">Data</p>
-						<h2 className="mt-1 text-2xl font-semibold text-foreground">
-							Year-by-Year Breakdown
+				<div className="flex items-end justify-between gap-3">
+					<div className="min-w-0">
+						<p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+							Data
+						</p>
+						<h2 className="mt-1 text-xl font-semibold text-foreground md:text-2xl">
+							Year-by-year breakdown
 						</h2>
-						<p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
-							Inspect every year of your compounding journey to see the exact
-							figures driving the projection.
+						<p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+							Every year of compounding driving the projection.
 						</p>
 					</div>
 					<CollapsibleTrigger asChild>
-						<Button type="button" variant="outline" size="sm">
-							{open ? "Hide Table" : "View Details"}
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="shrink-0 hover:border-primary/30 hover:bg-primary/10 hover:text-primary focus-visible:ring-primary/40"
+						>
+							{open ? "Hide" : "View"}
 							<ChevronDown
 								className={cn(
-									"ml-2 size-4 transition-transform",
+									"ml-1.5 size-4 transition-transform",
 									open ? "rotate-180" : undefined,
 								)}
 							/>
@@ -1259,8 +1119,8 @@ function YearByYearTable({
 					</CollapsibleTrigger>
 				</div>
 
-				<CollapsibleContent className="mt-8 overflow-x-auto">
-					<div className="min-w-[800px] rounded-lg border border-border bg-card">
+				<CollapsibleContent className="mt-5 overflow-x-auto">
+					<div className="min-w-[680px] rounded-lg border border-border bg-card">
 						<Table>
 							<TableHeader className="bg-muted/50">
 								<TableRow>
@@ -1268,8 +1128,9 @@ function YearByYearTable({
 									<TableHead className="font-semibold">
 										Invested Corpus
 									</TableHead>
-									<TableHead className="font-semibold">EPF</TableHead>
-									<TableHead className="font-semibold">Total Wealth</TableHead>
+									<TableHead className="font-semibold">
+										Total Investment
+									</TableHead>
 									<TableHead className="font-semibold">FIRE Target</TableHead>
 									<TableHead className="font-semibold">Gap</TableHead>
 									<TableHead className="font-semibold">
@@ -1286,10 +1147,7 @@ function YearByYearTable({
 										<TableCell className="font-medium">{point.age}</TableCell>
 										<TableCell>{formatCurrency(point.corpus)}</TableCell>
 										<TableCell className="text-muted-foreground">
-											{formatCurrency(point.epfCorpus)}
-										</TableCell>
-										<TableCell className="font-medium">
-											{formatCurrency(point.totalWealth)}
+											{formatCurrency(point.totalInvestment)}
 										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{formatCurrency(point.fireTarget)}
@@ -1323,7 +1181,6 @@ export function FirePage() {
 		createDraft(FIRE_DEFAULTS),
 	);
 	const [accuracyOpen, setAccuracyOpen] = useState(false);
-	const [fineTuneOpen, setFineTuneOpen] = useState(false);
 	const [tableOpen, setTableOpen] = useState(false);
 	const [storageReady, setStorageReady] = useState(false);
 	const [loadedFromStorage, setLoadedFromStorage] = useState(false);
@@ -1333,7 +1190,6 @@ export function FirePage() {
 		if (stored) {
 			setDraft(stored.draft);
 			setAccuracyOpen(stored.accuracyOpen);
-			setFineTuneOpen(stored.fineTuneOpen);
 			setTableOpen(stored.tableOpen);
 			setLoadedFromStorage(true);
 		}
@@ -1347,10 +1203,9 @@ export function FirePage() {
 		saveStoredFireState({
 			draft,
 			accuracyOpen,
-			fineTuneOpen,
 			tableOpen,
 		});
-	}, [accuracyOpen, draft, fineTuneOpen, storageReady, tableOpen]);
+	}, [accuracyOpen, draft, storageReady, tableOpen]);
 
 	const inputs = useMemo(() => buildInputsFromDraft(draft), [draft]);
 	const result = useMemo(() => calculateFire(inputs), [inputs]);
@@ -1365,11 +1220,8 @@ export function FirePage() {
 	return (
 		<ToolPageShell
 			title="FIRE Calculator"
-			description="Determine exactly when work becomes optional. Designed for the Indian economic context."
-			rootClassName="selection:bg-primary/20 selection:text-primary"
 			className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
 			backLinkClassName="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-			descriptionClassName="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground"
 		>
 			<div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
 				<InputPanel
@@ -1377,19 +1229,16 @@ export function FirePage() {
 					onFieldChange={setField}
 					accuracyOpen={accuracyOpen}
 					onAccuracyOpenChange={setAccuracyOpen}
-					fineTuneOpen={fineTuneOpen}
-					onFineTuneOpenChange={setFineTuneOpen}
 					onReset={() => {
 						setDraft(createDraft(FIRE_DEFAULTS));
 						setAccuracyOpen(false);
-						setFineTuneOpen(false);
 						setTableOpen(false);
 						setLoadedFromStorage(false);
 					}}
 					loadedFromStorage={loadedFromStorage}
 				/>
 
-				<div className="space-y-6 min-w-0">
+				<div className="space-y-5 min-w-0">
 					<HeroCard result={result} />
 					<ProjectionSection result={result} />
 					<StrategySection result={result} />

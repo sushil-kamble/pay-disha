@@ -4,13 +4,9 @@ export interface FireInputs {
 	existingSavings: number;
 	targetRetirementAge: number;
 	monthlySip: number;
+	annualSipStepUpPct: number;
 	expectedReturnPct: number;
 	inflationPct: number;
-	swrPct: number;
-	healthcareInflationPct: number;
-	monthlyHealthcareBudget: number;
-	epfMonthlyContribution: number;
-	epfInterestPct: number;
 }
 
 export type FireType = "lean" | "regular" | "comfort" | "coast" | "barista";
@@ -29,8 +25,7 @@ export interface FireProjectionPoint {
 	year: number;
 	age: number;
 	corpus: number;
-	epfCorpus: number;
-	totalWealth: number;
+	totalInvestment: number;
 	fireTarget: number;
 	annualExpenses: number;
 }
@@ -59,7 +54,6 @@ export interface LeverScenario {
 export interface FireResult {
 	inputs: FireInputs;
 	fireNumber: number;
-	fireMultiplier: number;
 	leanFireNumber: number;
 	comfortFireNumber: number;
 	coastFireNumber: number;
@@ -69,7 +63,6 @@ export interface FireResult {
 	yearsToFire: number | null;
 	fireAge: number | null;
 	projectedCorpusAtRetirement: number;
-	epfCorpusAtRetirement: number;
 	shortfall: number;
 	fireTypes: FireTypeResult[];
 	projectionPoints: FireProjectionPoint[];

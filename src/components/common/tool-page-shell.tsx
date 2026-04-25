@@ -7,7 +7,7 @@ import { cn } from "#/lib/utils";
 
 type ToolPageHeaderProps = {
 	title: string;
-	description: string;
+	description?: string;
 	tag?: ReactNode;
 	backHref?: string;
 	backLabel?: string;
@@ -65,14 +65,16 @@ export function ToolPageHeader({
 				>
 					{title}
 				</h1>
-				<p
-					className={cn(
-						"mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground",
-						descriptionClassName,
-					)}
-				>
-					{description}
-				</p>
+				{description ? (
+					<p
+						className={cn(
+							"mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground",
+							descriptionClassName,
+						)}
+					>
+						{description}
+					</p>
+				) : null}
 			</div>
 			{tag ? (
 				<div className={cn("shrink-0", tagWrapClassName)}>{tag}</div>

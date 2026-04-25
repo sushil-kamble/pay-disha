@@ -1,4 +1,8 @@
-import { FIRE_DEFAULTS, FIRE_TYPE_CONFIG } from "./constants";
+import {
+	FIRE_DEFAULTS,
+	FIRE_MARKET_ASSUMPTIONS,
+	FIRE_TYPE_CONFIG,
+} from "./constants";
 import { buildFireInsights, buildLeverScenarios } from "./insights";
 import type {
 	FireInputs,
@@ -23,55 +27,25 @@ export function formatIndian(num: number): string {
 	return Math.round(num).toLocaleString("en-IN");
 }
 
-function getGeneralMonthlyExpenses(
-	monthlyExpenses: number,
-	monthlyHealthcare: number,
-) {
-	return Math.max(0, monthlyExpenses - monthlyHealthcare);
-}
-
 export function calculateAnnualExpensesForYears(
-	inputs: Pick<
-		FireInputs,
-		| "monthlyExpenses"
-		| "monthlyHealthcareBudget"
-		| "inflationPct"
-		| "healthcareInflationPct"
-	>,
+	inputs: Pick<FireInputs, "monthlyExpenses" | "inflationPct">,
 	years: number,
 ): number {
-	const generalMonthly = getGeneralMonthlyExpenses(
-		inputs.monthlyExpenses,
-		inputs.monthlyHealthcareBudget,
-	);
-	const futureGeneral =
-		generalMonthly * 12 * (1 + inputs.inflationPct / 100) ** years;
-	const futureHealthcare =
-		inputs.monthlyHealthcareBudget *
-		12 *
-		(1 + inputs.healthcareInflationPct / 100) ** years;
-	return futureGeneral + futureHealthcare;
+	return inputs.monthlyExpenses * 12 * (1 + inputs.inflationPct / 100) ** years;
 }
 
 export function calculateFireTarget(
-	inputs: Pick<
-		FireInputs,
-		| "monthlyExpenses"
-		| "monthlyHealthcareBudget"
-		| "inflationPct"
-		| "healthcareInflationPct"
-		| "swrPct"
-	>,
+	inputs: Pick<FireInputs, "monthlyExpenses" | "inflationPct">,
 	years: number,
 ) {
-	return calculateAnnualExpensesForYears(inputs, years) / (inputs.swrPct / 100);
+	return (
+		calculateAnnualExpensesForYears(inputs, years) *
+		FIRE_MARKET_ASSUMPTIONS.corpusMultiple
+	);
 }
 
-function calculateFireNumber(
-	futureAnnualExpenses: number,
-	swrPct: number,
-): number {
-	return futureAnnualExpenses / (swrPct / 100);
+function calculateEffectiveMonthlyReturn(returnPct: number): number {
+	return (1 + returnPct / 100) ** (1 / 12) - 1;
 }
 
 function calculateCoastFireNumber(
@@ -85,10 +59,10 @@ function calculateCoastFireNumber(
 function calculateBaristaMonthlyIncome(
 	currentAnnualExpenses: number,
 	currentPortfolio: number,
-	swrPct: number,
 ): number {
-	const withdrawalIncome = currentPortfolio * (swrPct / 100);
-	const gap = currentAnnualExpenses - withdrawalIncome;
+	const portfolioIncome =
+		currentPortfolio / FIRE_MARKET_ASSUMPTIONS.corpusMultiple;
+	const gap = currentAnnualExpenses - portfolioIncome;
 	return Math.max(0, gap / 12);
 }
 
@@ -97,12 +71,10 @@ function calculateYearsToTarget(
 		FireInputs,
 		| "existingSavings"
 		| "monthlySip"
+		| "annualSipStepUpPct"
 		| "expectedReturnPct"
 		| "monthlyExpenses"
-		| "monthlyHealthcareBudget"
 		| "inflationPct"
-		| "healthcareInflationPct"
-		| "swrPct"
 	>,
 	targetFactor: number,
 	maxYears: number,
@@ -111,44 +83,35 @@ function calculateYearsToTarget(
 	if (inputs.existingSavings >= currentTarget) return 0;
 	if (inputs.monthlySip <= 0) return null;
 
-	const monthlyRate = inputs.expectedReturnPct / 100 / 12;
+	const monthlyRate = calculateEffectiveMonthlyReturn(inputs.expectedReturnPct);
 	let corpus = inputs.existingSavings;
+	let currentSip = inputs.monthlySip;
 
 	for (let month = 1; month <= maxYears * 12; month++) {
-		corpus = corpus * (1 + monthlyRate) + inputs.monthlySip;
-		const target = calculateFireTarget(inputs, month / 12) * targetFactor;
+		corpus = corpus * (1 + monthlyRate) + currentSip;
+		const years = month / 12;
+		const target = calculateFireTarget(inputs, years) * targetFactor;
 		if (corpus >= target) {
 			return Math.ceil((month / 12) * 10) / 10;
+		}
+		if (inputs.annualSipStepUpPct > 0 && month % 12 === 0) {
+			currentSip *= 1 + inputs.annualSipStepUpPct / 100;
 		}
 	}
 	return null;
 }
 
-function calculateEpfCorpus(
-	monthlyContribution: number,
-	annualRatePct: number,
-	years: number,
-): number {
-	if (monthlyContribution <= 0 || years <= 0) return 0;
-	const monthlyRate = annualRatePct / 100 / 12;
-	let corpus = 0;
-	for (let month = 0; month < years * 12; month++) {
-		corpus = corpus * (1 + monthlyRate) + monthlyContribution;
-	}
-	return corpus;
-}
-
 function buildProjectionPoints(inputs: FireInputs): FireProjectionPoint[] {
 	const points: FireProjectionPoint[] = [];
-	const monthlyRate = inputs.expectedReturnPct / 100 / 12;
-	const epfMonthlyRate = inputs.epfInterestPct / 100 / 12;
+	const monthlyRate = calculateEffectiveMonthlyReturn(inputs.expectedReturnPct);
 	const yearsToProject = Math.min(
 		inputs.targetRetirementAge - inputs.currentAge + 5,
 		MAX_PROJECTION_YEARS,
 	);
 
 	let corpus = inputs.existingSavings;
-	let epfCorpus = 0;
+	let currentSip = inputs.monthlySip;
+	let totalInvestment = inputs.existingSavings;
 
 	for (let year = 0; year <= yearsToProject; year++) {
 		const age = inputs.currentAge + year;
@@ -159,17 +122,18 @@ function buildProjectionPoints(inputs: FireInputs): FireProjectionPoint[] {
 			year,
 			age,
 			corpus: Math.round(corpus),
-			epfCorpus: Math.round(epfCorpus),
-			totalWealth: Math.round(corpus + epfCorpus),
+			totalInvestment: Math.round(totalInvestment),
 			fireTarget: Math.round(target),
 			annualExpenses: Math.round(futureExpenses),
 		});
 
 		// Compound for next year (month by month)
 		for (let m = 0; m < 12; m++) {
-			corpus = corpus * (1 + monthlyRate) + inputs.monthlySip;
-			epfCorpus =
-				epfCorpus * (1 + epfMonthlyRate) + inputs.epfMonthlyContribution;
+			corpus = corpus * (1 + monthlyRate) + currentSip;
+			totalInvestment += currentSip;
+		}
+		if (inputs.annualSipStepUpPct > 0) {
+			currentSip *= 1 + inputs.annualSipStepUpPct / 100;
 		}
 	}
 
@@ -209,7 +173,6 @@ function buildFireTypes(
 			const baristaIncome = calculateBaristaMonthlyIncome(
 				currentAnnualExpenses,
 				inputs.existingSavings,
-				inputs.swrPct,
 			);
 			return {
 				type,
@@ -247,9 +210,7 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 		yearsToRetirement,
 	);
 
-	const swrDecimal = inputs.swrPct / 100;
-	const fireNumber = calculateFireNumber(futureAnnualExpenses, inputs.swrPct);
-	const fireMultiplier = 1 / swrDecimal;
+	const fireNumber = calculateFireTarget(inputs, yearsToRetirement);
 
 	const leanFireNumber = Math.round(fireNumber * 0.7);
 	const comfortFireNumber = Math.round(fireNumber * 1.4);
@@ -264,7 +225,6 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 		calculateBaristaMonthlyIncome(
 			currentAnnualExpenses,
 			inputs.existingSavings,
-			inputs.swrPct,
 		),
 	);
 
@@ -274,18 +234,15 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 		yearsToFire !== null ? Math.round(inputs.currentAge + yearsToFire) : null;
 
 	// Projected corpus at target retirement age
-	const monthlyRate = inputs.expectedReturnPct / 100 / 12;
+	const monthlyRate = calculateEffectiveMonthlyReturn(inputs.expectedReturnPct);
 	let projectedCorpus = inputs.existingSavings;
-	for (let m = 0; m < yearsToRetirement * 12; m++) {
-		projectedCorpus = projectedCorpus * (1 + monthlyRate) + inputs.monthlySip;
+	let currentSip = inputs.monthlySip;
+	for (let m = 1; m <= yearsToRetirement * 12; m++) {
+		projectedCorpus = projectedCorpus * (1 + monthlyRate) + currentSip;
+		if (inputs.annualSipStepUpPct > 0 && m % 12 === 0) {
+			currentSip *= 1 + inputs.annualSipStepUpPct / 100;
+		}
 	}
-
-	const epfCorpusAtRetirement = calculateEpfCorpus(
-		inputs.epfMonthlyContribution,
-		inputs.epfInterestPct,
-		yearsToRetirement,
-	);
-
 	const shortfall = Math.round(fireNumber) - Math.round(projectedCorpus);
 
 	const fireTypes = buildFireTypes(inputs, fireNumber);
@@ -299,7 +256,6 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 		fireAge,
 		coastFireNumber,
 		projectedCorpus,
-		epfCorpusAtRetirement,
 		shortfall,
 	});
 
@@ -308,7 +264,6 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 	return {
 		inputs,
 		fireNumber: Math.round(fireNumber),
-		fireMultiplier: Math.round(fireMultiplier * 10) / 10,
 		leanFireNumber,
 		comfortFireNumber,
 		coastFireNumber,
@@ -318,7 +273,6 @@ export function calculateFire(inputs: FireInputs = FIRE_DEFAULTS): FireResult {
 		yearsToFire,
 		fireAge,
 		projectedCorpusAtRetirement: Math.round(projectedCorpus),
-		epfCorpusAtRetirement: Math.round(epfCorpusAtRetirement),
 		shortfall,
 		fireTypes,
 		projectionPoints,

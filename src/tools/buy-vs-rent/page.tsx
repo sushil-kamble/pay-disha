@@ -12,8 +12,9 @@ import {
 	ResultsColumnLoadingFallback,
 } from "#/tools/buy-vs-rent/components/results-column";
 import {
-	BUY_VS_RENT_LIMITS,
-	DEFAULT_BUY_VS_RENT_INPUTS,
+	DEFAULT_ADVANCED_ASSUMPTIONS,
+	DEFAULT_QUICK_INPUTS,
+	MARKET_DEFAULTS,
 } from "#/tools/buy-vs-rent/constants";
 import {
 	type BuyVsRentDraft,
@@ -23,11 +24,43 @@ import {
 	parseNumber,
 	saveStoredState,
 } from "#/tools/buy-vs-rent/page-state";
+import type { MarketType } from "#/tools/buy-vs-rent/types";
+
+function getMarketDefaultsForDraft(
+	marketType: MarketType,
+	draft: BuyVsRentDraft,
+) {
+	const marketDefaults = MARKET_DEFAULTS[marketType];
+	const propertyPrice =
+		parseNumber(
+			draft.propertyPriceLakhs,
+			DEFAULT_QUICK_INPUTS.propertyPriceLakhs,
+		) * 100000;
+	const monthlyRent = parseNumber(
+		draft.monthlyRent,
+		DEFAULT_QUICK_INPUTS.monthlyRent,
+	);
+
+	return {
+		extraBuyingCostPct: String(marketDefaults.extraBuyingCostPct),
+		monthlyOwnerCost: String(
+			Math.round(
+				(propertyPrice * (marketDefaults.ownerCostAnnualPct / 100)) / 12,
+			),
+		),
+		rentSetupCost: String(
+			Math.round(monthlyRent * marketDefaults.rentSetupMonths),
+		),
+		rentIncreasePct: String(marketDefaults.rentIncreasePct),
+		propertyAppreciationPct: String(marketDefaults.propertyAppreciationPct),
+	};
+}
 
 export function BuyVsRentPage() {
 	const [draft, setDraft] = useState<BuyVsRentDraft>(() => createDraft());
-	const [taxOpen, setTaxOpen] = useState(false);
-	const [showRealView, setShowRealView] = useState(false);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
+	const [detailsOpen, setDetailsOpen] = useState(false);
+	const [customGrowthOpen, setCustomGrowthOpen] = useState(false);
 	const [storageReady, setStorageReady] = useState(false);
 	const [loadedFromStorage, setLoadedFromStorage] = useState(false);
 
@@ -35,8 +68,9 @@ export function BuyVsRentPage() {
 		const stored = loadStoredState();
 		if (stored) {
 			setDraft(stored.draft);
-			setTaxOpen(stored.taxOpen);
-			setShowRealView(stored.showRealView);
+			setAdvancedOpen(stored.advancedOpen);
+			setDetailsOpen(stored.detailsOpen);
+			setCustomGrowthOpen(stored.customGrowthOpen);
 			setLoadedFromStorage(true);
 		}
 
@@ -48,10 +82,11 @@ export function BuyVsRentPage() {
 
 		saveStoredState({
 			draft,
-			taxOpen,
-			showRealView,
+			advancedOpen,
+			detailsOpen,
+			customGrowthOpen,
 		});
-	}, [draft, showRealView, storageReady, taxOpen]);
+	}, [advancedOpen, customGrowthOpen, detailsOpen, draft, storageReady]);
 
 	const setField = (key: BuyVsRentDraftFieldKey, value: string) => {
 		setDraft((current) => ({
@@ -65,98 +100,110 @@ export function BuyVsRentPage() {
 			calculateBuyVsRent({
 				propertyPriceLakhs: parseNumber(
 					draft.propertyPriceLakhs,
-					DEFAULT_BUY_VS_RENT_INPUTS.propertyPriceLakhs,
+					DEFAULT_QUICK_INPUTS.propertyPriceLakhs,
 				),
 				monthlyRent: parseNumber(
 					draft.monthlyRent,
-					DEFAULT_BUY_VS_RENT_INPUTS.monthlyRent,
+					DEFAULT_QUICK_INPUTS.monthlyRent,
 				),
-				stayYears: parseNumber(
-					draft.stayYears,
-					DEFAULT_BUY_VS_RENT_INPUTS.stayYears,
+				stayYears: parseNumber(draft.stayYears, DEFAULT_QUICK_INPUTS.stayYears),
+				monthlyTakeHome: parseNumber(
+					draft.monthlyTakeHome,
+					DEFAULT_QUICK_INPUTS.monthlyTakeHome,
 				),
-				downPaymentLakhs: parseNumber(
-					draft.downPaymentLakhs,
-					DEFAULT_BUY_VS_RENT_INPUTS.downPaymentLakhs,
+				availableCashLakhs: parseNumber(
+					draft.availableCashLakhs,
+					DEFAULT_QUICK_INPUTS.availableCashLakhs,
 				),
-				homeLoanRatePct: parseNumber(
-					draft.homeLoanRatePct,
-					DEFAULT_BUY_VS_RENT_INPUTS.homeLoanRatePct,
+				marketType: draft.marketType,
+				loanRatePct: parseNumber(
+					draft.loanRatePct,
+					DEFAULT_ADVANCED_ASSUMPTIONS.loanRatePct,
 				),
 				loanTenureYears: parseNumber(
 					draft.loanTenureYears,
-					DEFAULT_BUY_VS_RENT_INPUTS.loanTenureYears,
+					DEFAULT_ADVANCED_ASSUMPTIONS.loanTenureYears,
 				),
-				annualCtcLakhs: parseNumber(
-					draft.annualCtcLakhs,
-					DEFAULT_BUY_VS_RENT_INPUTS.annualCtcLakhs,
+				extraBuyingCostPct: parseNumber(
+					draft.extraBuyingCostPct,
+					DEFAULT_ADVANCED_ASSUMPTIONS.extraBuyingCostPct,
 				),
-				cityTier: draft.cityTier,
-				ageYears: parseNumber(
-					draft.ageYears,
-					DEFAULT_BUY_VS_RENT_INPUTS.ageYears,
+				monthlyOwnerCost: parseNumber(
+					draft.monthlyOwnerCost,
+					DEFAULT_ADVANCED_ASSUMPTIONS.monthlyOwnerCost,
 				),
-				salaryGrowthPct: parseNumber(
-					draft.salaryGrowthPct,
-					DEFAULT_BUY_VS_RENT_INPUTS.salaryGrowthPct,
+				rentSetupCost: parseNumber(
+					draft.rentSetupCost,
+					DEFAULT_ADVANCED_ASSUMPTIONS.rentSetupCost,
+				),
+				rentIncreasePct: parseNumber(
+					draft.rentIncreasePct,
+					DEFAULT_ADVANCED_ASSUMPTIONS.rentIncreasePct,
+				),
+				propertyAppreciationPct: parseNumber(
+					draft.propertyAppreciationPct,
+					DEFAULT_ADVANCED_ASSUMPTIONS.propertyAppreciationPct,
+				),
+				investmentReturnPct: parseNumber(
+					draft.investmentReturnPct,
+					DEFAULT_ADVANCED_ASSUMPTIONS.investmentReturnPct,
 				),
 			}),
 		[draft],
 	);
 
 	const propertyPriceRupees = result.inputs.propertyPriceLakhs * 100000;
-	const downPaymentValue = result.inputs.downPaymentLakhs * 100000;
-	const maxDownPaymentLakhs = Math.min(
-		result.inputs.propertyPriceLakhs,
-		BUY_VS_RENT_LIMITS.maxDownPaymentLakhs,
-	);
-	const downPaymentShare =
-		propertyPriceRupees > 0
-			? (downPaymentValue / propertyPriceRupees) * 100
-			: 0;
+	const availableCashRupees = result.inputs.availableCashLakhs * 100000;
+	const estimatedExtraBuyingCosts =
+		propertyPriceRupees * (result.inputs.extraBuyingCostPct / 100);
 
 	function resetDefaults() {
 		setDraft(createDraft());
-		setTaxOpen(false);
-		setShowRealView(false);
+		setAdvancedOpen(false);
+		setDetailsOpen(false);
+		setCustomGrowthOpen(false);
 		setLoadedFromStorage(false);
+	}
+
+	function setMarketType(value: MarketType) {
+		setDraft((current) => ({
+			...current,
+			marketType: value,
+			...getMarketDefaultsForDraft(value, current),
+		}));
 	}
 
 	return (
 		<ToolPageShell
 			title="Buy vs Rent"
-			description="A private decision engine for salaried India: see whether buying or renting leaves you stronger, why the result leans that way, and when the other choice starts making sense."
+			description="A simple decision tool for salaried India: compare one real home against renting a similar place, with strong defaults and no tax-form gymnastics."
 			tag={
 				<Badge
 					variant="secondary"
 					className="rounded-full px-3 py-1 text-xs font-semibold"
 				>
-					All calculations stay in your browser
+					Private browser-only estimate
 				</Badge>
 			}
 			className="rise-in mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
 		>
-			<div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:gap-8">
-				<div className="min-w-0 self-start lg:sticky lg:top-20">
+			<div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-8">
+				<div className="min-w-0 self-start">
 					{!storageReady ? (
 						<ConfigPanelLoadingFallback />
 					) : (
 						<ConfigPanel
 							draft={draft}
-							taxOpen={taxOpen}
-							setTaxOpen={setTaxOpen}
+							advancedOpen={advancedOpen}
+							setAdvancedOpen={setAdvancedOpen}
+							customGrowthOpen={customGrowthOpen}
+							setCustomGrowthOpen={setCustomGrowthOpen}
 							loadedFromStorage={loadedFromStorage}
 							propertyPriceRupees={propertyPriceRupees}
-							downPaymentValue={downPaymentValue}
-							downPaymentShare={downPaymentShare}
-							maxDownPaymentLakhs={maxDownPaymentLakhs}
+							availableCashRupees={availableCashRupees}
+							estimatedExtraBuyingCosts={estimatedExtraBuyingCosts}
 							onFieldChange={setField}
-							onCityTierChange={(value) =>
-								setDraft((current) => ({
-									...current,
-									cityTier: value,
-								}))
-							}
+							onMarketTypeChange={setMarketType}
 							onReset={resetDefaults}
 						/>
 					)}
@@ -167,8 +214,8 @@ export function BuyVsRentPage() {
 				) : (
 					<ResultsColumn
 						result={result}
-						showRealView={showRealView}
-						setShowRealView={setShowRealView}
+						detailsOpen={detailsOpen}
+						setDetailsOpen={setDetailsOpen}
 					/>
 				)}
 			</div>

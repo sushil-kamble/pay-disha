@@ -1421,7 +1421,6 @@ export function SipCalculatorPage() {
 		<ToolPageShell
 			title="SIP Future Planner"
 			description="This is not a generic SIP maturity widget. It shows what your goal will really cost, whether your current SIP gets there, and which levers buy you the most future."
-			rootClassName="selection:bg-primary/20 selection:text-primary"
 			rootStyle={{
 				backgroundImage:
 					"radial-gradient(circle at 0% 0%, rgba(13,148,136,0.09), transparent 32%), radial-gradient(circle at 100% 10%, rgba(217,119,6,0.10), transparent 28%), linear-gradient(180deg, rgba(248,250,252,0.96), rgba(248,250,252,1))",
