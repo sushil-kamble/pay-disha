@@ -26,7 +26,9 @@ export interface FireProjectionPoint {
 	age: number;
 	corpus: number;
 	totalInvestment: number;
+	leanFireTarget: number;
 	fireTarget: number;
+	comfortFireTarget: number;
 	annualExpenses: number;
 }
 

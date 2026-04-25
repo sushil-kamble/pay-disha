@@ -884,26 +884,82 @@ function AssumptionCard({
 
 function ProjectionSection({ result }: { result: FireResult }) {
 	const compactInsights = getCompactInsights(result.insights);
+	const chartLegendOrder = [
+		"corpus",
+		"leanFireTarget",
+		"fireTarget",
+		"comfortFireTarget",
+	];
 	const chartConfig: ChartConfig = {
 		corpus: {
 			label: "Invested Corpus",
 			color: "var(--chart-2)",
 		},
+		leanFireTarget: {
+			label: "Lean FIRE",
+			color: "var(--chart-3)",
+		},
 		fireTarget: {
-			label: "FIRE Target",
+			label: "FIRE",
 			color: "var(--chart-1)",
+		},
+		comfortFireTarget: {
+			label: "Comfort FIRE",
+			color: "var(--chart-4)",
 		},
 	};
 
-	const crossoverPoint = result.projectionPoints.find(
-		(point) => point.corpus >= point.fireTarget,
-	);
+	const targetMarkers = [
+		{
+			id: "lean",
+			label: "Lean FIRE",
+			chartLabel: "Lean",
+			targetKey: "leanFireTarget",
+			color: "var(--color-leanFireTarget)",
+			radius: 7,
+			labelDx: -8,
+			labelDy: 28,
+			textAnchor: "end",
+		},
+		{
+			id: "fire",
+			label: "FIRE",
+			chartLabel: "FIRE",
+			targetKey: "fireTarget",
+			color: "var(--color-fireTarget)",
+			radius: 9,
+			labelDx: 8,
+			labelDy: 12,
+			textAnchor: "start",
+		},
+		{
+			id: "comfort",
+			label: "Comfort FIRE",
+			chartLabel: "Comfort",
+			targetKey: "comfortFireTarget",
+			color: "var(--color-comfortFireTarget)",
+			radius: 7,
+			labelDx: 8,
+			labelDy: -4,
+			textAnchor: "start",
+		},
+	] as const;
+
+	const crossoverMarkers = targetMarkers.flatMap((marker) => {
+		const point = result.projectionPoints.find(
+			(point) => point.corpus >= point[marker.targetKey],
+		);
+
+		return point ? [{ ...marker, point }] : [];
+	});
 
 	const chartData = result.projectionPoints.map((point) => ({
 		label: point.year === 0 ? "Now" : `Age ${point.age}`,
 		age: point.age,
 		corpus: point.corpus,
+		leanFireTarget: point.leanFireTarget,
 		fireTarget: point.fireTarget,
+		comfortFireTarget: point.comfortFireTarget,
 		annualExpenses: point.annualExpenses,
 	}));
 
@@ -981,7 +1037,13 @@ function ProjectionSection({ result }: { result: FireResult }) {
 									/>
 								}
 							/>
-							<ChartLegend content={<ChartLegendContent />} />
+							<ChartLegend
+								content={<ChartLegendContent />}
+								itemSorter={(item) => {
+									const order = chartLegendOrder.indexOf(String(item.dataKey));
+									return order === -1 ? chartLegendOrder.length : order;
+								}}
+							/>
 							<Area
 								type="monotone"
 								dataKey="corpus"
@@ -1006,45 +1068,68 @@ function ProjectionSection({ result }: { result: FireResult }) {
 							</defs>
 							<Line
 								type="monotone"
+								dataKey="leanFireTarget"
+								stroke="var(--color-leanFireTarget)"
+								strokeWidth={2}
+								strokeDasharray="4 5"
+								dot={false}
+							/>
+							<Line
+								type="monotone"
 								dataKey="fireTarget"
 								stroke="var(--color-fireTarget)"
 								strokeWidth={2.5}
 								strokeDasharray="6 6"
 								dot={false}
 							/>
-							{crossoverPoint ? (
-								<ReferenceLine
-									x={
-										crossoverPoint.year === 0
-											? "Now"
-											: `Age ${crossoverPoint.age}`
-									}
-									stroke="var(--color-primary)"
-									strokeWidth={2}
-									strokeDasharray="5 4"
-									label={{
-										value: `FIRE @ ${crossoverPoint.age}`,
-										position: "top",
-										fill: "var(--color-primary)",
-										fontSize: 12,
-										fontWeight: 700,
-									}}
-								/>
-							) : null}
-							{crossoverPoint ? (
-								<ReferenceDot
-									x={
-										crossoverPoint.year === 0
-											? "Now"
-											: `Age ${crossoverPoint.age}`
-									}
-									y={crossoverPoint.corpus}
-									r={9}
-									fill="var(--color-primary)"
-									stroke="var(--color-background)"
-									strokeWidth={3}
-								/>
-							) : null}
+							<Line
+								type="monotone"
+								dataKey="comfortFireTarget"
+								stroke="var(--color-comfortFireTarget)"
+								strokeWidth={2}
+								strokeDasharray="8 6"
+								dot={false}
+							/>
+							{crossoverMarkers.map((marker) => {
+								const point = marker.point;
+								const x = point.year === 0 ? "Now" : `Age ${point.age}`;
+
+								return (
+									<ReferenceLine
+										key={`${marker.id}-line`}
+										x={x}
+										stroke={marker.color}
+										strokeWidth={2}
+										strokeDasharray="5 4"
+										label={{
+											value: `${marker.chartLabel} @ ${point.age}`,
+											position: "top",
+											fill: marker.color,
+											fontSize: 12,
+											fontWeight: 700,
+											dx: marker.labelDx,
+											dy: marker.labelDy,
+											textAnchor: marker.textAnchor,
+										}}
+									/>
+								);
+							})}
+							{crossoverMarkers.map((marker) => {
+								const point = marker.point;
+								const x = point.year === 0 ? "Now" : `Age ${point.age}`;
+
+								return (
+									<ReferenceDot
+										key={`${marker.id}-dot`}
+										x={x}
+										y={point.corpus}
+										r={marker.radius}
+										fill={marker.color}
+										stroke="var(--color-background)"
+										strokeWidth={3}
+									/>
+								);
+							})}
 						</ComposedChart>
 					</ChartContainer>
 				</div>
@@ -1126,10 +1211,10 @@ function YearByYearTable({
 								<TableRow>
 									<TableHead className="w-20 font-semibold">Age</TableHead>
 									<TableHead className="font-semibold">
-										Invested Corpus
+										Total Investment
 									</TableHead>
 									<TableHead className="font-semibold">
-										Total Investment
+										Invested Corpus
 									</TableHead>
 									<TableHead className="font-semibold">FIRE Target</TableHead>
 									<TableHead className="font-semibold">Gap</TableHead>
@@ -1145,10 +1230,10 @@ function YearByYearTable({
 										className="hover:bg-muted/30"
 									>
 										<TableCell className="font-medium">{point.age}</TableCell>
-										<TableCell>{formatCurrency(point.corpus)}</TableCell>
 										<TableCell className="text-muted-foreground">
 											{formatCurrency(point.totalInvestment)}
 										</TableCell>
+										<TableCell>{formatCurrency(point.corpus)}</TableCell>
 										<TableCell className="text-muted-foreground">
 											{formatCurrency(point.fireTarget)}
 										</TableCell>

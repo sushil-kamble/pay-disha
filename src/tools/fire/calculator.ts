@@ -117,13 +117,17 @@ function buildProjectionPoints(inputs: FireInputs): FireProjectionPoint[] {
 		const age = inputs.currentAge + year;
 		const futureExpenses = calculateAnnualExpensesForYears(inputs, year);
 		const target = calculateFireTarget(inputs, year);
+		const leanTarget = target * (FIRE_TYPE_CONFIG.lean.factor ?? 1);
+		const comfortTarget = target * (FIRE_TYPE_CONFIG.comfort.factor ?? 1);
 
 		points.push({
 			year,
 			age,
 			corpus: Math.round(corpus),
 			totalInvestment: Math.round(totalInvestment),
+			leanFireTarget: Math.round(leanTarget),
 			fireTarget: Math.round(target),
+			comfortFireTarget: Math.round(comfortTarget),
 			annualExpenses: Math.round(futureExpenses),
 		});
 

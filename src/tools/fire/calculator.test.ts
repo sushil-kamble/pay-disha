@@ -160,6 +160,22 @@ describe("fire calculator", () => {
 		expect(result.projectionPoints[2]?.annualExpenses).toBe(172800);
 	});
 
+	it("includes lean, regular, and comfort FIRE targets in projection points", () => {
+		const result = calculateFire({
+			...FIRE_DEFAULTS,
+			currentAge: 30,
+			targetRetirementAge: 31,
+			monthlyExpenses: 10000,
+			inflationPct: 0,
+		});
+
+		expect(result.projectionPoints[0]).toMatchObject({
+			leanFireTarget: 2772000,
+			fireTarget: 3960000,
+			comfortFireTarget: 5544000,
+		});
+	});
+
 	it("builds five lever scenarios and shows SIP increases improving the timeline", () => {
 		const result = calculateFire(FIRE_DEFAULTS);
 		const increaseSip = result.leverScenarios.find(
