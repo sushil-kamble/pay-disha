@@ -1,10 +1,10 @@
 import {
 	AlertTriangle,
+	ArrowUpDown,
 	BarChart3,
 	ChevronDown,
 	Clock3,
 	IndianRupee,
-	Landmark,
 	LineChart as LineChartIcon,
 	WalletCards,
 } from "lucide-react";
@@ -53,6 +53,8 @@ import {
 
 type BuyVsRentResult = ReturnType<typeof calculateBuyVsRent>;
 
+const MONTHLY_DELTA_NOISE_THRESHOLD = 2000;
+
 function getVerdictTheme(verdict: BuyVsRentResult["decision"]["verdict"]) {
 	if (verdict === "buy") {
 		return {
@@ -88,9 +90,9 @@ function getConfidenceLabel(
 function getAffordabilityCopy(
 	band: BuyVsRentResult["decision"]["affordabilityBand"],
 ) {
-	if (band === "comfortable") return "Comfortable";
-	if (band === "watch") return "Watch";
-	return "Stretched";
+	if (band === "comfortable") return "Fits your income";
+	if (band === "watch") return "Manageable, but keep buffer";
+	return "Too heavy for this income";
 }
 
 function formatPressure(value: number | null) {
@@ -216,8 +218,25 @@ function VerdictHero({ result }: { result: BuyVsRentResult }) {
 }
 
 function DecisionMetrics({ result }: { result: BuyVsRentResult }) {
-	const wealthWinner =
-		result.decision.wealthGap >= 0 ? "Buying ahead" : "Renting ahead";
+	const isBuyingAhead = result.decision.wealthGap >= 0;
+	const wealthWinner = isBuyingAhead ? "buying" : "renting";
+	const monthlyDelta =
+		result.decision.monthlyBuyCost - result.decision.monthlyRentCost;
+	const monthlyDeltaAbs = Math.abs(monthlyDelta);
+	const isMonthlyClose = monthlyDeltaAbs < MONTHLY_DELTA_NOISE_THRESHOLD;
+	const monthlyDeltaValue = isMonthlyClose
+		? "Almost the same"
+		: monthlyDelta > 0
+			? `${formatCurrency(monthlyDeltaAbs)} more/mo`
+			: `Saves ${formatCurrency(monthlyDeltaAbs)}/mo`;
+	const monthlyDeltaSubtext = isMonthlyClose
+		? "Year-one monthly costs are nearly identical for buying and renting."
+		: monthlyDelta > 0
+			? "Buying costs this much extra each month compared with renting."
+			: "Buying actually costs this much less each month than renting.";
+	const monthlyPressureCopy = getAffordabilityCopy(
+		result.decision.affordabilityBand,
+	);
 
 	return (
 		<section className={resultSectionClassName}>
@@ -232,35 +251,35 @@ function DecisionMetrics({ result }: { result: BuyVsRentResult }) {
 			<div className={resultCardGridClassName}>
 				<MetricCard
 					icon={IndianRupee}
-					label="Wealth gap"
+					label="Money difference"
 					value={formatCurrency(Math.abs(result.decision.wealthGap))}
-					subtext={wealthWinner}
+					subtext={`After your stay, ${wealthWinner} leaves you ahead.`}
 				/>
 				<MetricCard
 					icon={Clock3}
-					label="Break-even stay"
+					label="Buying starts winning"
 					value={
 						result.decision.breakEvenYear
 							? `Year ${result.decision.breakEvenYear}`
-							: "No catch-up"
+							: "Not within 30 years"
 					}
-					subtext="When buying first beats renting."
+					subtext={
+						result.decision.breakEvenYear
+							? "Stay at least this long for buying to pull ahead."
+							: "In this setup, renting stays ahead in the long view."
+					}
 				/>
 				<MetricCard
-					icon={Landmark}
-					label="Cash needed"
-					value={formatCurrency(result.decision.upfrontCashNeeded)}
-					subtext={
-						result.decision.cashShortfall > 0
-							? `Short by ${formatCurrency(result.decision.cashShortfall)}.`
-							: "Covered by the cash you entered."
-					}
+					icon={ArrowUpDown}
+					label="Monthly difference"
+					value={monthlyDeltaValue}
+					subtext={monthlyDeltaSubtext}
 				/>
 				<MetricCard
 					icon={WalletCards}
-					label="Monthly pressure"
-					value={`${formatPressure(result.decision.buyMonthlyPressure)} vs ${formatPressure(result.decision.rentMonthlyPressure)}`}
-					subtext={`Buy vs rent share of take-home. ${getAffordabilityCopy(result.decision.affordabilityBand)}.`}
+					label="Income used each month"
+					value={`Buy ${formatPressure(result.decision.buyMonthlyPressure)} | Rent ${formatPressure(result.decision.rentMonthlyPressure)}`}
+					subtext={monthlyPressureCopy}
 				/>
 			</div>
 		</section>

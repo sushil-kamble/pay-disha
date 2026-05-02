@@ -80,15 +80,25 @@ type PersistedFireState = {
 
 const FIRE_INPUT_KEYS = Object.keys(FIRE_DEFAULTS) as Array<keyof FireInputs>;
 
+const RUPEES_PER_LAKH = 100000;
+
 const surfaceClassName = "rounded-2xl border border-border bg-card shadow-sm";
 const sectionPaddingClassName = "p-5 sm:p-6 md:p-7";
 const subSurfaceClassName = "rounded-xl border border-border bg-muted/40";
+
+function rupeesToLakhs(value: number) {
+	return value / RUPEES_PER_LAKH;
+}
+
+function lakhsToRupees(value: number) {
+	return value * RUPEES_PER_LAKH;
+}
 
 function createDraft(inputs: FireInputs): FireInputDraft {
 	return {
 		currentAge: String(inputs.currentAge),
 		monthlyExpenses: String(inputs.monthlyExpenses),
-		existingSavings: String(inputs.existingSavings),
+		existingSavings: String(rupeesToLakhs(inputs.existingSavings)),
 		targetRetirementAge: String(inputs.targetRetirementAge),
 		monthlySip: String(inputs.monthlySip),
 		annualSipStepUpPct: String(inputs.annualSipStepUpPct),
@@ -115,7 +125,22 @@ function normalizeStoredFireInputDraft(value: unknown): FireInputDraft | null {
 		...value,
 	};
 
-	return isFireInputDraft(mergedDraft) ? mergedDraft : null;
+	if (!isFireInputDraft(mergedDraft)) return null;
+
+	const existingSavings = parseNumber(
+		mergedDraft.existingSavings,
+		rupeesToLakhs(FIRE_DEFAULTS.existingSavings),
+	);
+	const maxExistingSavingsLakhs = rupeesToLakhs(FIRE_LIMITS.maxExistingSavings);
+
+	return {
+		...mergedDraft,
+		existingSavings: String(
+			existingSavings > maxExistingSavingsLakhs
+				? rupeesToLakhs(existingSavings)
+				: existingSavings,
+		),
+	};
 }
 
 function parseStoredJson(rawValue: string | null) {
@@ -188,7 +213,12 @@ function buildInputsFromDraft(draft: FireInputDraft): FireInputs {
 			FIRE_LIMITS.maxMonthlyExpenses,
 		),
 		existingSavings: clamp(
-			parseNumber(draft.existingSavings, FIRE_DEFAULTS.existingSavings),
+			lakhsToRupees(
+				parseNumber(
+					draft.existingSavings,
+					rupeesToLakhs(FIRE_DEFAULTS.existingSavings),
+				),
+			),
 			FIRE_LIMITS.minExistingSavings,
 			FIRE_LIMITS.maxExistingSavings,
 		),
@@ -336,6 +366,7 @@ function NumberField({
 	tooltip,
 	prefix,
 	suffix,
+	step,
 	disabled,
 }: {
 	id: string;
@@ -346,6 +377,7 @@ function NumberField({
 	tooltip?: string;
 	prefix?: string;
 	suffix?: string;
+	step?: number;
 	disabled?: boolean;
 }) {
 	return (
@@ -367,6 +399,7 @@ function NumberField({
 					type="number"
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
+					step={step}
 					disabled={disabled}
 					className={cn(
 						"h-10",
@@ -404,15 +437,9 @@ function InputPanel({
 }) {
 	return (
 		<div className={cn(surfaceClassName, "p-5 lg:p-6")}>
-			<div className="flex items-start justify-between gap-3">
+			<div className="flex items-center justify-between gap-3">
 				<div>
-					<p className="text-sm font-semibold text-primary">Calculator</p>
-					<h2 className="mt-1 text-xl font-semibold text-foreground">
-						Core Inputs
-					</h2>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Start with your age, expenses, and current savings.
-					</p>
+					<p className="text-sm font-semibold text-primary">Fire Calculator</p>
 				</div>
 				<Button type="button" variant="outline" size="sm" onClick={onReset}>
 					<RefreshCcw className="mr-2 size-3.5" />
@@ -441,7 +468,8 @@ function InputPanel({
 					label="Existing Savings & Investments"
 					value={draft.existingSavings}
 					onChange={(value) => onFieldChange("existingSavings", value)}
-					prefix="₹"
+					suffix="Lakhs"
+					step={0.1}
 					helper="Across mutual funds, PF, cash, stocks, and everything else."
 				/>
 			</div>
@@ -539,10 +567,6 @@ function InputPanel({
 }
 
 function HeroCard({ result }: { result: FireResult }) {
-	const bestLever =
-		result.leverScenarios.find((lever) => lever.impact !== "low") ??
-		result.leverScenarios[0];
-
 	return (
 		<section
 			className={cn(
@@ -551,9 +575,9 @@ function HeroCard({ result }: { result: FireResult }) {
 				"overflow-hidden",
 			)}
 		>
-			{/* Target corpus label + big number (whitespace-nowrap keeps Cr on same line) */}
+			{/* Target amount label + big number (whitespace-nowrap keeps Cr on same line) */}
 			<p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-				FIRE Number
+				Retirement Target
 			</p>
 			<div className="mt-2">
 				<h2 className="display-title text-5xl font-bold tracking-tight text-foreground md:text-7xl whitespace-nowrap">
@@ -561,20 +585,20 @@ function HeroCard({ result }: { result: FireResult }) {
 				</h2>
 			</div>
 
-			{/* Four metric cards — 2 per row — below the corpus number */}
+			{/* Four metric cards — 2 per row — below the target number */}
 			<div className="mt-6 grid gap-3 sm:grid-cols-2">
 				<MetricCard
-					label="Current Pace"
+					label="On Current Track"
 					value={
 						result.fireAge !== null
 							? `Age ${result.fireAge}`
-							: "Not Visible Yet"
+							: "Not On Track Yet"
 					}
 					subtext={formatYears(result.yearsToFire)}
 					icon={Target}
 				/>
 				<MetricCard
-					label="Remaining Gap"
+					label={result.shortfall > 0 ? "Amount Still Needed" : "Extra Cushion"}
 					value={
 						result.shortfall > 0
 							? formatCurrency(result.shortfall)
@@ -582,61 +606,32 @@ function HeroCard({ result }: { result: FireResult }) {
 					}
 					subtext={
 						result.shortfall > 0
-							? "Amount left to save"
-							: "Surplus above target"
+							? "More money needed to reach your target"
+							: "More than your target amount"
 					}
 					icon={ShieldAlert}
 				/>
 				<MetricCard
-					label="Future Monthly Spend"
+					label="Monthly Spending Then"
 					value={formatMonthly(result.futureMonthlyExpenses)}
 					subtext={`Estimated at age ${result.inputs.targetRetirementAge}`}
 					icon={TrendingUp}
 				/>
 				<MetricCard
-					label="Projected Corpus"
+					label="Money You May Have"
 					value={formatCurrency(result.projectedCorpusAtRetirement)}
-					subtext="At target retirement age"
+					subtext={`By age ${result.inputs.targetRetirementAge}`}
 					icon={PiggyBank}
 				/>
 			</div>
 
 			{/* Description */}
 			<p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-				<strong>{formatCurrency(result.fireNumber)}</strong> is the estimated
-				corpus you would need by age{" "}
-				<strong>{result.inputs.targetRetirementAge}</strong> for your
-				investments to support your expected expenses without relying on a
-				salary.
+				You may need about <strong>{formatCurrency(result.fireNumber)}</strong>{" "}
+				in savings and investments by age{" "}
+				<strong>{result.inputs.targetRetirementAge}</strong>. This is the amount
+				that could help pay your regular expenses without depending on a salary.
 			</p>
-
-			{/* Best next move */}
-			{bestLever ? (
-				<div
-					className={cn(
-						subSurfaceClassName,
-						"mt-4 flex items-center justify-between gap-3 border-primary/20 bg-primary/5 px-4 py-3",
-					)}
-				>
-					<div className="min-w-0">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
-							Next move
-						</p>
-						<p className="truncate text-sm font-semibold text-foreground">
-							{bestLever.label}
-						</p>
-					</div>
-					<div className="flex shrink-0 items-center gap-2 text-right">
-						<p className="hidden text-xs font-medium text-muted-foreground sm:block">
-							{bestLever.yearsSaved && bestLever.yearsSaved > 0
-								? `${bestLever.yearsSaved.toFixed(
-										bestLever.yearsSaved % 1 === 0 ? 0 : 1,
-									)} years earlier`
-								: "See why"}
-						</p>
-					</div>
-				</div>
-			) : null}
 		</section>
 	);
 }
